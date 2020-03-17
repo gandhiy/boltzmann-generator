@@ -83,10 +83,13 @@ class RealNVP():
             distribution=self.__generate_multivariate_normal(loc, scale),
             bijector=tfb.Chain(list(reversed(self.chain)))
         )
-        
+
+        self.avg_loss = tf.keras.metrics.Mean(name='average_loss', dtype=tf.float32)        
+        self.log = tf.summary.create_file_writer('checkpoints')
 
     def __generate_multivariate_normal(self, loc=[0., 0.], scale=[1., 1.]):
         return tfd.MultivariateNormalDiag(loc, scale)
+
 
     def summary(self):
         for i,layer in enumerate(self.chain):
@@ -94,9 +97,26 @@ class RealNVP():
             y = layer.forward(x)
             Model(x,y,name=f'layer_{i}_summary').summary()
 
+
+    def forward_sample(self, n):
+        return self.flow.sample(n)
+    def backward_sample(self, target):
+        return self.flow.bijector.inverse(target)
+
+
+
     def train(self, x):
-        raise NotImplementedError
+        with tf.GradientTape as tape:
+            log_prob_loss = self.loss(self.flow.log_prob(x))
+        grads = tape.gradient(log_prob_loss, self.flow.trainable_variables)
+        self.opt.apply_gradients(zip(grads, self.flow.trainable_variables))
+        self.avg_loss.update_state(log_prob_loss)
+        if(tf.equal(self.opt.iterations % 100, 0)):
+            with self.log.as_default():
+                tf.summary.scalar("loss", self.avg_loss.result(), step=self.opt.iterations)
+                self.avg_loss.reset_states()
         
+
 
 
 
