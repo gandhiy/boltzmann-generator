@@ -4,6 +4,7 @@ import thermostats
 import itertools
 import potentials
 import data_logging
+import boundary_conditions
 class Particle:
     def __init__(self, potential, loc, vel = None, mass = 1):
         self.potential = potential
@@ -28,19 +29,42 @@ class SystemFactory:
                            "WCA" : potentials.WCAPotential,
                            "LJ" : potentials.LJpotential
                           }
+
+        self.central_potentials = {
+                                   "harmonic" : potentials.HarmonicPotential,
+                                   "double_well" : potentials.DoubleWellPotential,
+                                   "mueller" : potentials.MuellerPotential
+                                  }
+
+        self.boundary_conditions = {
+                                    "periodic" : boundary_conditions.PeriodicBoundaryConditions,
+                                    "none" : boundary_conditions.NoBoundaryConditions
+                                   }
+
+            
         
 
-    def build_system(self, dim, T, rho, N, mass = 1, placement_method = "lattice", potential = "WCA", **args):
+    def build_system(self, dim, T, rho, N, mass = 1, placement_method = "lattice", boundary_conditions = "periodic", central_potential = None, potential = "WCA", **args):
         if len(args) == 0:
             args = {"sigma" : 1, "epsilon" : 1}   
         box = (N / rho) ** (1/dim) * np.ones(dim)
         coords = self.placement[placement_method](N, box)
         system = System(box=box)
+        system.bc = self.boundary_conditions[boundary_conditions](system)
         vels = np.random.normal(scale = np.sqrt(T/mass), size = (N, dim))
         for coord, vel in zip(coords, vels):
             system.add_particle(Particle(self.potentials[potential](**args), coord, vel = vel, mass = mass))
-        return(system)
+        self.get_dofs(system, placement_method)
+        return system
 
+    def get_dofs(self, system, placement_method):
+        system.dof = system.dim * len(system.particles)
+        if placement_method == "periodic":
+            system.dof -= system.dim
+        
+    def add_central_potential(self, system, central_potential, **kwargs):
+        system.central_potential = self.central_potentials[central_potential](**kwargs)
+    
     def lattice_placement(self, n, box):
         r_min = -box / 2
         r_max = - r_min
@@ -51,31 +75,36 @@ class SystemFactory:
         coords = np.array([np.diagonal(coord) for coord in coords])
         return coords
 
-    def random_placement(self, n, box, d_min = None):
+    def random_placement(self, n, box, d_min = None, center = None):
         dim = len(box)
+        if d_min is None:
+            d_min = 0.1 * np.average(box)
+            print(d_min)
+        if center is None:
+            center = np.zeros(dim)
         coords = np.zeros((n, dim))
-        coords[0] = (np.random.random(dim) - 0.5)*box
+        coords[0] = (np.random.random(dim) - 0.5)*box + center
         i = 0
-        while i < n - 1:
-            prop = (np.random.random(dim) - 0.5) * box
+        while i <= n - 1:
+            prop = (np.random.random(dim) - 0.5) * box + center
             if np.any(np.linalg.norm(prop - coords, axis=1) > d_min):
                 coords[i] = prop
                 i += 1
+        print(coords)
         return coords
 
 
 class System(data_logging.Subject):
-    def __init__(self, box = np.array([1, 1]), dim = 2, pbc = True):
+    def __init__(self, box = np.array([1, 1]), dim = 2):
         super().__init__()
         self.particles = []
         self.box = box
         self.int_fact = integrators.IntegratorFactory(self)
-        self.thermostat_fact = thermostats.ThermostatFactory(self)
         self.integrator = None
-        self.thermostat = None
         self.central_potential = None
-        self.pbc = pbc
+        self.bc = None
         self.dim = dim
+        self.dof = None
 
     # Observer functions
 
@@ -94,14 +123,12 @@ class System(data_logging.Subject):
         self.integrator = self.int_fact.get_integrator(integrator_name, dt, **args)
 
     def get_thermostat(self, thermostat_name, T, **kwargs):
-        self.thermostat = self.thermostat_fact.get_thermostat(thermostat_name, T, **kwargs)
+        self.integrator.get_thermostat(thermostat_name, T, **kwargs)
 
     # Run Simulation
     def run(self, steps):
         for step in range(steps):
             self.integrator.integrate()
-            if self.thermostat is not None:
-                self.thermostat.apply(steps)
             self.notifyObservers(step + 1)
         
 
@@ -113,8 +140,8 @@ class System(data_logging.Subject):
         self.particles.append(particle)
 
     # Boundary Conditions
-    def apply_pbc(self, coords):
-        return coords - self.box * np.round(coords / self.box)
+    def apply_bc(self, coords):
+        return self.bc(coords)
 
     # Get/Set system states
     def get_velocities(self):

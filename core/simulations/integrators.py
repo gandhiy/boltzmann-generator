@@ -3,15 +3,21 @@
 from abc import ABC, abstractmethod
 import numpy as np
 import itertools
+import thermostats
 
 class Integrator(ABC):
-    def __init__(self, system, dt):
+    def __init__(self, system, dt, thermostat = None):
         self.system = system
         self.dt = dt
+        self.thermostat = thermostat
+        self.thermostat_fact = thermostats.ThermostatFactory(self)
 
     @abstractmethod
     def integrate(self):
         pass
+
+    def get_thermostat(self, thermostat_name, T, **kwargs):
+        self.thermostat = self.thermostat_fact.get_thermostat(thermostat_name, T, **kwargs)
 
 class IntegratorFactory():
     def __init__(self, system):
@@ -39,7 +45,7 @@ class VerletIntegrator(Integrator):
 
         v_half = v + np.multiply(f.transpose(), self.dt / ( 2 * self.system.get_masses() )).transpose()
         r += v_half * self.dt
-        r = self.system.apply_pbc(r)
+        r = self.system.apply_bc(r)
         self.system.set_coordinates(r)
         f = self.calculate_forces()
         v = v_half + np.multiply(f.transpose(), self.dt / ( 2 * self.system.get_masses() )).transpose()
@@ -47,27 +53,38 @@ class VerletIntegrator(Integrator):
         self.system.set_velocities(v)
         self.system.set_forces(f)
 
+        if self.thermostat is not None:
+            self.thermostat.apply()
+
     def calculate_forces(self):
         indices = list(range(len(self.system.particles)))
         forces = np.zeros((len(self.system.particles), self.system.dim))
         # print(forces)
-        for pair in itertools.combinations(indices, 2):
-            i, j = pair[0], pair[1]
-            if i == j:
-                continue
-            r_ij = np.array(self.system.apply_pbc(self.system.particles[i].loc - self.system.particles[j].loc))
-            r_ji = np.array(self.system.apply_pbc(self.system.particles[j].loc - self.system.particles[i].loc))
-            forces[i, :] += self.system.particles[j].potential.derivative(r_ij)
-            forces[j, :] += self.system.particles[i].potential.derivative(r_ji)
+        if self.system.central_potential is not None:
+            for i in indices:
+                forces[i, :] += -self.system.central_potential.derivative(self.system.particles[i].loc)
+        if len(self.system.particles):
+            for pair in itertools.combinations(indices, 2):
+                i, j = pair[0], pair[1]
+                if i == j:
+                    continue
+                r_ij = np.array(self.system.bc(self.system.particles[i].loc - self.system.particles[j].loc))
+                r_ji = np.array(self.system.bc(self.system.particles[j].loc - self.system.particles[i].loc))
+                forces[i, :] += self.system.particles[j].potential.derivative(r_ij)
+                forces[j, :] += self.system.particles[i].potential.derivative(r_ji)
+            
         return forces
 
     def calculate_energy(self):
         U = 0
         vs = self.system.get_velocities()
         K = 0.5 * np.sum(self.system.get_masses() *  np.array([np.dot(vs[i,:], vs[i,:]) for i in range(vs.shape[0])]))
+        if self.system.central_potential is not None:
+            for i in range(len(self.system.particles)):
+                U += self.system.central_potential(self.system.particles[i].loc)
         for pair in itertools.combinations(range(len(self.system.particles)), 2):
             i, j = pair[0], pair[1]
-            r_ij = np.array(self.system.apply_pbc(self.system.particles[i].loc - self.system.particles[j].loc))
+            r_ij = np.array(self.system.bc(self.system.particles[i].loc - self.system.particles[j].loc))
             r_ji = - r_ij
             u_ij = self.system.particles[j].potential(r_ij)
             u_ji = self.system.particles[i].potential(r_ji)
@@ -82,8 +99,8 @@ class VerletIntegrator(Integrator):
             i, j = pair[0], pair[1]
             if i == j:
                 continue
-            r_ij = np.array(self.system.apply_pbc(self.system.particles[i].loc - self.system.particles[j].loc))
-            r_ji = np.array(self.system.apply_pbc(self.system.particles[j].loc - self.system.particles[i].loc))
+            r_ij = np.array(self.system.bc(self.system.particles[i].loc - self.system.particles[j].loc))
+            r_ji = np.array(self.system.bc(self.system.particles[j].loc - self.system.particles[i].loc))
             f_ij = self.system.particles[j].potential.derivative(r_ij)
             f_ji = self.system.particles[i].potential.derivative(r_ji)
             w += (1 / self.system.dim) * ( np.dot(f_ij, r_ij) + np.dot(f_ji,r_ji))
@@ -94,7 +111,10 @@ class VerletIntegrator(Integrator):
     def calculate_temperature(self):
         vs = self.system.get_velocities()
         K = 0.5 * np.sum(self.system.get_masses() *  np.array([np.dot(vs[i,:], vs[i,:]) for i in range(vs.shape[0])]))
-        T_i = 2 * K / (self.system.dim * len(self.system.particles) - self.system.dim)
+        if len(self.system.particles) == 1:
+            T_i = K
+        else:
+            T_i = 2 * K / self.system.dof
         return(T_i)
 
 
@@ -118,7 +138,7 @@ class VerletIntegratorNeighbors(VerletIntegrator):
 
         v_half = v + np.multiply(f.transpose(), self.dt / ( 2 * self.system.get_masses() )).transpose()
         r += v_half * self.dt
-        r = self.system.apply_pbc(r)
+        r = self.system.bc(r)
         self.system.set_coordinates(r)
         self.check_delta_r()
         f = self.calculate_forces()
@@ -127,9 +147,12 @@ class VerletIntegratorNeighbors(VerletIntegrator):
         self.system.set_velocities(v)
         self.system.set_forces(f)
 
+        if self.thermostat is not None:
+            self.thermostat.apply()
+
     def check_delta_r(self):
         for particle in self.system.particles:
-            r = self.system.apply_pbc(particle.loc - particle.prev_loc)
+            r = self.system.bc(particle.loc - particle.prev_loc)
             delta_r_sq = np.dot(r,r)
             del_sq = (self.r_nl - particle.potential.r_c)**2
             if delta_r_sq > del_sq/4:
@@ -144,7 +167,7 @@ class VerletIntegratorNeighbors(VerletIntegrator):
             particle.prev_loc = particle.loc
         for pair in itertools.combinations(range(len(self.system.particles)), 2):
             i, j = pair[0], pair[1]
-            r = self.system.apply_pbc(self.system.particles[i].loc - self.system.particles[j].loc)
+            r = self.system.bc(self.system.particles[i].loc - self.system.particles[j].loc)
             r_sq = np.dot(r, r)
             if  r_sq < self.r_nl**2:
                 neighbor_table[i,j] += 1
@@ -155,9 +178,12 @@ class VerletIntegratorNeighbors(VerletIntegrator):
     def calculate_forces(self):
         indices = list(range(len(self.system.particles)))
         forces = np.zeros((len(self.system.particles), self.system.dim))
+        if self.system.central_potential is not None:
+            for i in indices:
+                forces[i, :] += -self.system.central_potential.derivative(self.system.particles[i].loc)
         for i in indices:
             for neighbor in self.system.particles[i].neighbors:
-                r_ij = np.array(self.system.apply_pbc(self.system.particles[i].loc - neighbor.loc))
+                r_ij = np.array(self.system.bc(self.system.particles[i].loc - neighbor.loc))
                 # print(neighbor.potential.derivative(r_ij))
                 forces[i, :] += neighbor.potential.derivative(r_ij)
         return forces
@@ -166,9 +192,12 @@ class VerletIntegratorNeighbors(VerletIntegrator):
         U = 0
         vs = self.system.get_velocities()
         K = 0.5 * np.sum(self.system.get_masses() *  np.array([np.dot(vs[i,:], vs[i,:]) for i in range(vs.shape[0])]))
+        if self.system.central_potential is not None:
+            for i in range(len(self.system.particles)):
+                U += self.system.central_potential(self.system.particles[i].loc)
         for i in range(len(self.system.particles)):
             for neighbor in self.system.particles[i].neighbors:
-                r_ij = np.array(self.system.apply_pbc(self.system.particles[i].loc - neighbor.loc))
+                r_ij = np.array(self.system.bc(self.system.particles[i].loc - neighbor.loc))
                 U += neighbor.potential(r_ij)
         H = U + K
         return H, U, K
@@ -180,7 +209,7 @@ class VerletIntegratorNeighbors(VerletIntegrator):
 
         for i in indices:
             for neighbor in self.system.particles[i].neighbors:
-                r_ij = np.array(self.system.apply_pbc(self.system.particles[i].loc - neighbor.loc))
+                r_ij = np.array(self.system.bc(self.system.particles[i].loc - neighbor.loc))
                 f_ij = neighbor.potential.derivative(r_ij)
                 w += (1 / self.system.dim) * np.dot(f_ij, r_ij)
         T_i = self.calculate_temperature()
@@ -212,12 +241,15 @@ class VerletIntegratorCellList(VerletIntegrator):
     def calculate_forces(self):
         indices = list(range(len(self.system.particles)))
         forces = np.zeros((len(self.system.particles), self.system.dim))
+        if self.system.central_potential is not None:
+            for i in indices:
+                forces[i, :] += -self.system.central_potential.derivative(self.system.particles[i].loc)
         for i in indices:
             neighbors = self.get_cell_neighbors(self.system.particles[i].cell)
             for neighbor in neighbors:
                 if neighbor == self.system.particles[i]:
                     continue
-                r_ij = np.array(self.system.apply_pbc(self.system.particles[i].loc - neighbor.loc))
+                r_ij = np.array(self.system.bc(self.system.particles[i].loc - neighbor.loc))
                 forces[i, :] += neighbor.potential.derivative(r_ij)
         return forces
 
@@ -225,12 +257,15 @@ class VerletIntegratorCellList(VerletIntegrator):
         U = 0
         vs = self.system.get_velocities()
         K = 0.5 * np.sum(self.system.get_masses() *  np.array([np.dot(vs[i,:], vs[i,:]) for i in range(vs.shape[0])]))
+        if self.system.central_potential is not None:
+            for i in range(len(self.system.particles)):
+                U += self.system.central_potential(self.system.particles[i].loc)
         for i in range(len(self.system.particles)):
             neighbors = self.get_cell_neighbors(self.system.particles[i].cell)
             for neighbor in neighbors:
                 if neighbor == self.system.particles[i]:
                     continue
-                r_ij = np.array(self.system.apply_pbc(self.system.particles[i].loc - neighbor.loc))
+                r_ij = np.array(self.system.bc(self.system.particles[i].loc - neighbor.loc))
                 U += neighbor.potential(r_ij)
         H = U/2 + K
         return H, U, K
@@ -244,7 +279,7 @@ class VerletIntegratorCellList(VerletIntegrator):
             for neighbor in neighbors:
                 if neighbor == self.system.particles[i]:
                     continue
-                r_ij = np.array(self.system.apply_pbc(self.system.particles[i].loc - neighbor.loc))
+                r_ij = np.array(self.system.bc(self.system.particles[i].loc - neighbor.loc))
                 f_ij = neighbor.potential.derivative(r_ij)
                 w += (1 / self.system.dim) * np.dot(f_ij, r_ij)
         T_i = self.calculate_temperature()
@@ -282,7 +317,7 @@ class VerletIntegratorCellList(VerletIntegrator):
 
         v_half = v + np.multiply(f.transpose(), self.dt / ( 2 * self.system.get_masses() )).transpose()
         r += v_half * self.dt
-        r = self.system.apply_pbc(r)
+        r = self.system.bc(r)
         self.system.set_coordinates(r)
         self.update_cells()
         f = self.calculate_forces()
@@ -290,3 +325,5 @@ class VerletIntegratorCellList(VerletIntegrator):
         
         self.system.set_velocities(v)
         self.system.set_forces(f)
+        if self.thermostat is not None:
+            self.thermostat.apply()
