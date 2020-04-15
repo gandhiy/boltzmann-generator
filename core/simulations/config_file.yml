@@ -1,0 +1,8 @@
+# Simulation config file 
+simulation: "muller"
+integrator: "metropolis"
+integrator_args:
+    dt:
+    temp: 1
+n_steps: 1000000
+out_freq: 1000
