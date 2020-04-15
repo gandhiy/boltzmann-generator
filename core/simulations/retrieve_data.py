@@ -18,3 +18,4 @@ class SimulationAdapter(RetrieveData):
     pass
 
 class ReadPDB(RetrieveData):
+    pass
