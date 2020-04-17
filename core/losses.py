@@ -3,21 +3,30 @@ import tensorflow as tf
 
 
 class getLoss:
-    def __init__(self, type):
-        self.type = type
+    def __init__(self):
+        pass
 
-    def get_loss(self, parameters):
-        if(self.type == 'basic'):
-            lossfunction = basicLoss(parameters)
-            return lossfunction.lossfn()
-        else:
-            raise ValueError("need to specificy a corrent optimizer type")
-            
+    def basic_loss(self, c1=1.0):
+        loss = basicLoss(c1)
+        return loss.lossFunction
 
-class basicLoss:
-    def __init__(self, parameters):
-        self.parameters = parameters
-    def lossfn(self):
-        def loss(targets):
-            return -self.parameters['c1'] * tf.reduce_mean(targets)
-        return loss
+
+        
+class lossInterface:
+    def __init__(self):
+        pass
+
+    def lossFunction(self, target_prob, samples):
+        raise NotImplementedError
+
+
+class basicLoss(lossInterface):
+    def __init__(self, c1):
+        super(basicLoss, self).__init__()
+        self.c1 = c1
+
+    
+    def lossFunction(self, target_prob, samples):
+        return -self.c1 * tf.reduce_mean(target_prob)
+
+
