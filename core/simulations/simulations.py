@@ -20,7 +20,7 @@ class SimulationData:
 
     def getData(self):
         self.simulation.runSimulation()
-        self.simulation_data = self.simulation.coordinate_logger.coordinates
+        self.simulation_data = (self.simulation.energy_logger, self.simulation.coordinate_logger.coordinates)
         return self.simulation_data
 
     def evaluateEnergy(self):
