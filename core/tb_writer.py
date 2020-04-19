@@ -5,8 +5,16 @@ import matplotlib.pyplot as plt
 from PIL import Image
 from pdb import set_trace as debug
 
-class tensorboard_writer:
+class ObserverInterface:
+    def __init__(self):
+        pass
+    def update(self):
+        raise NotImplementedError
+
+
+class tensorboard_writer(ObserverInterface):
     def __init__(self, writer):
+        super(tensorboard_writer, self).__init__()
         self.writer = writer
 
 
@@ -29,7 +37,7 @@ class tensorboard_writer:
 
 
     def _update_images(self, tag, value, step):
-        fig = plt.figure(figsize=(8,8))
+        fig = plt.figure(figsize=(10,10), dpi=100)
         plt.scatter(value.numpy().T[0], value.numpy().T[1])
         im = np.array(self.fig2img(fig))
         plt.close()

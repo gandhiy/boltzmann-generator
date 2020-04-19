@@ -30,10 +30,9 @@ class Trainer:
 
     def train(self, epochs):
         for epoch in range(epochs):            
-            self.epoch = epoch
             for i, target in enumerate(self.train_dataset):
                 self.iteration += 1 
-                self.model.train(target, (self.epoch, self.iteration, i))
+                self.model.train(target, (epoch, self.iteration, i))
 
 
 

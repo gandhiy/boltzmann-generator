@@ -16,7 +16,7 @@ class lossInterface:
     def __init__(self):
         pass
 
-    def lossFunction(self, target_prob, samples):
+    def lossFunction(self, model, samples):
         raise NotImplementedError
 
 
@@ -25,8 +25,7 @@ class basicLoss(lossInterface):
         super(basicLoss, self).__init__()
         self.c1 = c1
 
-    
-    def lossFunction(self, target_prob, samples):
-        return -self.c1 * tf.reduce_mean(target_prob)
+    def lossFunction(self, model, samples):
+        return -self.c1 * tf.reduce_mean(model.log_prob(samples))
 
 

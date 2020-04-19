@@ -34,6 +34,7 @@ class NN(Layer):
         t = self.t_layer(y)
         return log_s, t 
 
+
 class RealNVPLayer(tfp.bijectors.Bijector):
     def __init__(self, model, in_shape, hidden_layers=[512,512], forward_min_event_ndims=1, validate_args: bool = False, name='real_nvp'):
         super(RealNVPLayer, self).__init__(validate_args=validate_args, forward_min_event_ndims=forward_min_event_ndims, name=name)
@@ -70,6 +71,7 @@ class RealNVPLayer(tfp.bijectors.Bijector):
         log_s, t = self.nn(x_b)
         return log_s
 
+
 class Network(ABC):
 
 
@@ -82,9 +84,10 @@ class Network(ABC):
     def backward_sample(self, target):
         raise NotImplementedError
     
-    def train(self, x, step):
+    def train(self, x):
         raise NotImplementedError
 
+    
     def get_state(self):
         raise NotImplementedError
     
@@ -92,6 +95,7 @@ class Network(ABC):
         raise NotImplementedError
 
     
+
 class RealNVP(Network):
     def __init__(self, loss, optimizer, chain_length = 6, in_shape = [2], 
         nn_layers=[256, 256], loc=[0., 0.], scale=[1., 1.],
@@ -118,15 +122,16 @@ class RealNVP(Network):
             bijector=tfb.Chain(list(reversed(self.chain)))
         )
 
-        self.__set_up_logging(self.model_name) 
+        self.__set_up_logging(self.model_name)
+        self.loss_value = 0
         self.state = {}
         self.epoch = 0
         self.batch_iteration = 0
         self.training_iteration = 0
-        self.loss_value = 0
 
     def __generate_multivariate_normal(self, loc=[0., 0.], scale=[1., 1.]):
         return tfd.MultivariateNormalDiag(loc, scale)
+
 
     def __set_up_logging(self, mn):
         self.save_path = f"../checkpoints/{mn}"
@@ -160,15 +165,17 @@ class RealNVP(Network):
         
         # calculate loss
         with tf.GradientTape() as tape:
-            self.loss_value = self.loss(self.flow.log_prob(x), self.flow.sample(x.shape[0]))
+            self.loss_value = self.loss(self.flow, x)
         
         grads = tape.gradient(self.loss_value, self.flow.trainable_variables)
         self.opt.apply_gradients(zip(grads, self.flow.trainable_variables))
-        
+        self.state.update(self.get_state())
+
 
     def get_state(self):
         return {}
 
     def update(self):
-        pass
+        self.log.update(self.get_state())
+        self.state = {}
 
