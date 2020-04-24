@@ -74,7 +74,6 @@ class RealNVPLayer(tfp.bijectors.Bijector):
 
 class Network(ABC):
 
-
     def summary(self):
         raise NotImplementedError
 
@@ -94,12 +93,18 @@ class Network(ABC):
     def update(self):
         raise NotImplementedError
 
+    def save(self, name):
+        raise NotImplementedError
+
+    def load(self, path):
+        raise NotImplementedError
+
     
 
-class RealNVP(Network):
+class RealNVP(Network, tf.Module):
     def __init__(self, loss, optimizer, chain_length = 6, in_shape = [2], 
         nn_layers=[256, 256], loc=[0., 0.], scale=[1., 1.],
-        model_name='temp'):
+        model_name=None):
         super(RealNVP, self).__init__()
 
         self.loc = loc
@@ -122,12 +127,16 @@ class RealNVP(Network):
             bijector=tfb.Chain(list(reversed(self.chain)))
         )
 
-        self.__set_up_logging(self.model_name)
+        if model_name is not None:
+            self.__set_up_logging(self.model_name)
         self.loss_value = 0
         self.state = {}
         self.epoch = 0
         self.batch_iteration = 0
         self.training_iteration = 0
+        self.ckpt = tf.train.Checkpoint(model=self.flow)
+
+
 
     def __generate_multivariate_normal(self, loc=[0., 0.], scale=[1., 1.]):
         return tfd.MultivariateNormalDiag(loc, scale)
@@ -171,6 +180,14 @@ class RealNVP(Network):
         self.opt.apply_gradients(zip(grads, self.flow.trainable_variables))
         self.state.update(self.get_state())
 
+    def save(self, name=None):
+        if name is None:
+            name = f"saved_models/epoch_{self.epoch}/ckpt"
+        save_path = os.path.join(self.save_path, name)
+        return self.ckpt.save(save_path)
+
+    def load(self, path):
+        self.ckpt.restore(path).assert_consumed()
 
     def get_state(self):
         return {}

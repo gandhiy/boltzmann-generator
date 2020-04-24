@@ -34,7 +34,7 @@ class AdamOpt(optimizerInterface):
         self.kwargs = kwargs
 
     def optimizer(self):
-        return tf.keras.optimizers.Adam(
+        return tf.optimizers.Adam(
             learning_rate=self.lr, 
             beta_1=self.b1,
             beta_2=self.b2,
@@ -50,7 +50,7 @@ class RMSPropOpt(optimizerInterface):
         self.kwargs = kwargs
 
     def optimizer(self):
-        return tf.keras.optimizers.RMSprop(
+        return tf.optimizers.RMSprop(
             learning_rate=self.lr,
             rho=self.rho,
             momentum=self.mt,
@@ -65,7 +65,7 @@ class SGDOpt(optimizerInterface):
         self.kwargs = kwargs
 
     def optimizer(self):
-        return tf.keras.optimizers.SGD(
+        return tf.optimizers.SGD(
             learning_rate=self.lr,
             nesterov=self.nesterov,
             **self.kwargs
