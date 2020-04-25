@@ -81,7 +81,6 @@ class SystemFactory:
                     mass = 1,
                     placement_method = "lattice",
                     boundary_conditions = "periodic",
-                    central_potential = None,
                     potential = "WCA",
                     **args):
         if len(args) == 0:
@@ -159,8 +158,8 @@ class System(data_logging.Subject):
             obs.update(steps)
 
     # Get type of integrator
-    def get_integrator(self, integrator_name, dt, **args):
-        self.integrator = self.int_fact.get_integrator(integrator_name, dt, **args)
+    def get_integrator(self, integrator_name, **kwargs):
+        self.integrator = self.int_fact.get_integrator(integrator_name, **kwargs)
 
     def get_thermostat(self, thermostat_name, T, **kwargs):
         self.integrator.get_thermostat(thermostat_name, T, **kwargs)

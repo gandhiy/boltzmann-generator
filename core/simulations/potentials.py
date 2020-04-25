@@ -15,7 +15,7 @@ class WCAPotential:
             return(0.0)
     def derivative(self, r_ij):
         if np.dot(r_ij,r_ij) < self.r_c ** 2:
-            return( 24 * self.epsilon * r_ij / np.dot(r_ij, r_ij) * (2 * (self.sigma**2 / np.dot(r_ij, r_ij)**6) - (self.sigma**2 / np.dot(r_ij, r_ij)**3) ) )
+            return( -24 * self.epsilon * r_ij / np.dot(r_ij, r_ij) * (2 * (self.sigma**2 / np.dot(r_ij, r_ij)**6) - (self.sigma**2 / np.dot(r_ij, r_ij)**3) ) )
         else:
             return(np.zeros(r_ij.shape))
 
@@ -33,7 +33,7 @@ class LJpotential:
             return(0.0)
     def derivative(self, r_ij):
         if np.dot(r_ij,r_ij) < self.r_c ** 2 or self.r_c is None:
-            return( 24 * self.epsilon * r_ij / np.dot(r_ij, r_ij) * (2 * (self.sigma**2 / np.dot(r_ij, r_ij)**6) - (self.sigma**2 / np.dot(r_ij, r_ij)**3) ) )
+            return( -24 * self.epsilon * r_ij / np.dot(r_ij, r_ij) * (2 * (self.sigma**2 / np.dot(r_ij, r_ij)**6) - (self.sigma**2 / np.dot(r_ij, r_ij)**3) ) )
         else:
             return(np.zeros(r_ij.shape))
 
@@ -45,12 +45,12 @@ class LJRepulsion:
 
     def __call__(self, r_ij):
         if np.dot(r_ij,r_ij) < self.r_c ** 2 or self.r_c is None:
-            return(self.epsilon * 4 * ((self.sigma**2 / np.dot(r_ij, r_ij)**3) ))
+            return(self.epsilon * 4 * ((self.sigma**2 / np.dot(r_ij, r_ij)**6) ))
         else:
             return(0.0)
     def derivative(self, r_ij):
         if np.dot(r_ij,r_ij) < self.r_c ** 2 or self.r_c is None:
-            return( 24 * self.epsilon * r_ij / np.dot(r_ij, r_ij) * (2 * (self.sigma**2 / np.dot(r_ij, r_ij)**6) ))
+            return( -48 * self.epsilon *  self.sigma * r_ij * (1 / np.dot(r_ij, r_ij)**7))
         else:
             return(np.zeros(r_ij.shape))
 
@@ -131,3 +131,19 @@ class MuellerPotential:
         # print("dE =", self.alpha * np.array([dx, dy]))
         # print("r = ", r)
         return(self.alpha * np.array([dx, dy]))
+
+class HarmonicBox:
+    def __init__(self, l_box, k_box):
+        self.l_box = l_box
+        self.k_box = k_box
+
+    def __call__(self, r_ij):
+        u_upper = np.sum(np.heaviside(r_ij - self.l_box/2, 0) * self.k_box * (r_ij - self.l_box/2) ** 2)
+        u_lower = np.sum(np.heaviside(-r_ij - self.l_box/2, 0) * self.k_box * (-r_ij - self.l_box/2) ** 2)
+        return u_upper + u_lower
+
+    def derivative(self, r_ij):
+        du_upper = np.heaviside(r_ij - self.l_box/2, 0) * 2 * self.k_box * (r_ij - self.l_box/2)
+        du_lower = np.heaviside(-r_ij - self.l_box/2, 0) * -2 * self.k_box * (-r_ij - self.l_box/2)
+        return du_upper + du_lower
+

@@ -52,6 +52,7 @@ class MuellerWellSim(Simulation):
                              xj = [1, 0, -0.5, -1],
                              yj = [0, 0.5, 1.5, 1]
                             )
+        self.system.central_potential = self.central_potential
         self.system.add_particle(simulation_library.Particle(None, np.array(self.config["x_0"])))
         self.system.get_integrator(self.config["integrator"], **self.config["integrator_args"])
         if "thermostat" in self.config.keys():
@@ -78,6 +79,7 @@ class DoubleWellSim(Simulation):
                                 c = 1,
                                 d = 1,
                                 )
+        self.system.central_potential = self.central_potential
         self.system.add_particle(simulation_library.Particle(None, np.array(self.config["x_0"])))
         self.system.get_integrator(self.config["integrator"], **self.config["integrator_args"])
         if "thermostat" in self.config.keys():
@@ -98,9 +100,10 @@ class DimerLJFluidSim(Simulation):
     def __init__(self, config_file):
         super().__init__(config_file)
         self.system_builder = simulation_library.SystemFactory()
-        self.system = self.system_builder.build_system(dim = 2, T = self.config["thermostat_args"]["T"], rho = self.config["rho"], N = self.config["N"], potential = "LJ-rep", sigma = 1, epsilon = 1, r_c = 2)
-        self.system.add_bond(potentials.DoubleWellPotential1D(1.5, 25, 10, -0.5), self.system.particles[0], self.system.particles[1])
+        self.system = self.system_builder.build_system(dim = 2, **self.config["system_params"])
+        self.system.add_bond(potentials.DoubleWellPotential1D(1.5, 25, 10, -0.5), self.system.particles[5], self.system.particles[6])
         self.system.bonds[0].particle_interactions = False
+        self.system.central_potential = potentials.HarmonicBox(l_box = 3.0, k_box = 100)
         self.system.get_integrator(self.config["integrator"], **self.config["integrator_args"])
         if "thermostat" in self.config.keys():
             self.system.get_thermostat(self.config["thermostat"], **self.config["thermostat_args"])

@@ -1,0 +1,18 @@
+# Dimer in Solution Config File
+
+integrator : "verlet"
+integrator_args : {
+  dt : 0.0005
+}
+x_0 : [2 , 0]
+out_freq : 100
+n_steps : 50000
+system_params : {
+  N : 36,
+  rho : 1.0,
+  placement_method : "lattice",
+  boundary_conditions : "none",
+  potential : "LJ-rep",
+  sigma : 1.1,
+  epsilon : 1.0,
+}

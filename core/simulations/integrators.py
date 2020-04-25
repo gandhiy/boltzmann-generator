@@ -6,7 +6,7 @@ import itertools
 import thermostats
 
 class Integrator(ABC):
-    def __init__(self, system, dt, thermostat = None):
+    def __init__(self, system, dt = None, thermostat = None):
         self.system = system
         self.dt = dt
         self.thermostat = thermostat
@@ -29,9 +29,9 @@ class IntegratorFactory():
                             "metropolis" : MetropolisIntegrator
                             }
 
-    def get_integrator(self, integrator_name, dt, **kwargs):
+    def get_integrator(self, integrator_name, **kwargs):
         if integrator_name in self.integrators.keys():
-            return(self.integrators[integrator_name](self.system, dt,**kwargs))
+            return(self.integrators[integrator_name](self.system, **kwargs))
         else:
             raise NotImplementedError(integrator_name + " is not a valid integrator")
 
@@ -71,8 +71,8 @@ class VerletIntegrator(Integrator):
                     continue
                 r_ij = np.array(self.system.bc(self.system.particles[i].loc - self.system.particles[j].loc))
                 r_ji = np.array(self.system.bc(self.system.particles[j].loc - self.system.particles[i].loc))
-                forces[i, :] += self.system.particles[j].potential.derivative(r_ij)
-                forces[j, :] += self.system.particles[i].potential.derivative(r_ji)
+                forces[i, :] += -self.system.particles[j].potential.derivative(r_ij)
+                forces[j, :] += -self.system.particles[i].potential.derivative(r_ji)
             
         return forces
 
@@ -191,7 +191,7 @@ class VerletIntegratorNeighbors(VerletIntegrator):
             for neighbor in self.system.particles[i].neighbors:
                 r_ij = np.array(self.system.bc(self.system.particles[i].loc - neighbor.loc))
                 # print(neighbor.potential.derivative(r_ij))
-                forces[i, :] += neighbor.potential.derivative(r_ij)
+                forces[i, :] += -neighbor.potential.derivative(r_ij)
         
         # Bond Energy Loop
         if len(self.system.bonds) > 0:
@@ -279,7 +279,7 @@ class VerletIntegratorCellList(VerletIntegrator):
                 if neighbor == self.system.particles[i]:
                     continue
                 r_ij = np.array(self.system.bc(self.system.particles[i].loc - neighbor.loc))
-                forces[i, :] += neighbor.potential.derivative(r_ij)
+                forces[i, :] += -neighbor.potential.derivative(r_ij)
         return forces
 
     def calculate_energy(self):
@@ -360,8 +360,8 @@ class VerletIntegratorCellList(VerletIntegrator):
 
 
 class MetropolisIntegrator(Integrator):
-    def __init__(self, system, dt, temp, sigma = 1, adjust_sigma = True, adjust_freq = 10):
-        super().__init__(system, dt = None)
+    def __init__(self, system, temp, sigma = 1, adjust_sigma = True, adjust_freq = 10):
+        super().__init__(system)
         self.temp = temp
         self.sigma = sigma
         self.adjust_sigma = adjust_sigma
@@ -384,12 +384,14 @@ class MetropolisIntegrator(Integrator):
             self.energy = e_proposed
             self.system.set_coordinates(r_prop)
             self.accepts += 1
+            # print("ACCEPT")
         else:
             p_acc = np.exp(-delta_E / self.temp)
             if np.random.rand() < p_acc:
                 self.energy = e_proposed
                 self.system.set_coordinates(r_prop)
                 self.accepts += 1
+                # print("ACCEPT")
             else:
                 pass
         self.steps += 1
