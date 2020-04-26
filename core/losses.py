@@ -34,11 +34,11 @@ class MLLoss(lossInterface):
         return -self.c1 * tf.reduce_mean(model.log_prob(samples))
 
 
-def KLLoss(lossInterface):
-    def __init__(self, c1, energy_function, ndims):
+class KLLoss(lossInterface):
+    def __init__(self, c1, simulation, ndims):
         super(KLLoss, self).__init__()
         self.c1 = c1
-        self.u = energy_function
+        self.u = simulation.getEnergy
         self.n = 2
         
 
@@ -46,7 +46,7 @@ def KLLoss(lossInterface):
         real_space = model.bijector.sample(1000)
         gauss_samples = model.distribution.sample(1000)
 
-        return self.c1 * tf.reduce_mean(tf.add(self.u(real_space), model.bijector.forward_log_det_jacobian(gauss_samples, self.n)))
+        return self.c1 * tf.reduce_mean(tf.add(self.u(real_space) - model.bijector.forward_log_det_jacobian(gauss_samples, self.n)))
 
 
 

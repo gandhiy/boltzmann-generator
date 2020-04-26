@@ -1,5 +1,5 @@
 import tensorflow as tf
-
+import numpy as np
 from network_base import Network
 from pdb import set_trace as debug
 
@@ -63,22 +63,32 @@ class LogTargetPlot(Logging):
             s['training/forward_sample'] = (target, self.epoch)
         return s
 
-# class FreeEnergyPlot(Logging):
-#     def __init__(self, decorated_model, RC_func):
-#         Logging.__init__(self, decorated_model)
-#         self.RC_func = RC_func
-
-#     def get_state(self):
-#         s = self.decorated_model.get_state()
-#         if(self.batch_iteration == 0):
-#             samples = []
-#             for t in self.forward_sample(2500).numpy():
-#                 samples.append(self.RC_func(t))
-                
-#             ## generate the histogram values
-#             ## transform the histogram values
-
-#             s['training/free_energy'] = (samples, self.epoch) 
+class FreeEnergyPlot(Logging):
+    def __init__(self, decorated_model, simulation, RC_func, bins = 200):
+        Logging.__init__(self, decorated_model)
+        self.RC_func = RC_func
+        self.simulation = simulation
+        self.bins = bins
+    def get_state(self):
+        s = self.decorated_model.get_state()
+        if(self.batch_iteration == 0):
+            rc_samples = []
+            weights = []
+            for t in self.forward_sample(2500).numpy():
+                rc_samples.append(self.RC_func(t))
+                w = np.exp(-self.simulation.calculate_energy(t) + \
+                     self.flow.log_prob(t) + \
+                     self.flow.bijector.forward_log_det_jacobian(t))
+                weights.append(w)
+            ## generate the histogram values
+            counts, bins = np.histogram(rc_samples, weights=weights, bins=self.bins)
+            probs = counts / np.sum(counts)
+            bin_centers = (bins[:-1] + bins[1:])/2.0
+            fig = plt.figure(figsize = [12, 8], dpi = 150)
+            FE = -np.log(probs)
+            plt.plot(bin_centers, FE)
+            ## transform the histogram values
+            s['training/free_energy'] = (fig, self.epoch)
 
 
 class LogGaussPlot(Logging):
