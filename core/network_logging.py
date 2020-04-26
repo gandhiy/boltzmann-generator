@@ -1,4 +1,8 @@
+import sys
+import visuals
 import tensorflow as tf
+import matplotlib.pyplot as plt
+
 
 from network_base import Network
 from pdb import set_trace as debug
@@ -53,6 +57,27 @@ class LogLoss(Logging):
 
 
 class LogTargetPlot(Logging):
+    def __init__(self, decorated_model, sim=None, xlim = [-1.5, 1.5], ylim = [-0.5, 2.01]):
+        Logging.__init__(self, decorated_model)
+        self.sim = sim
+        self.xlim = xlim
+        self.ylim = ylim
+
+    def get_state(self):
+        s = self.decorated_model.get_state()
+        if(self.batch_iteration == 0):
+            target = self.forward_sample(2500).numpy().T
+            fig = plt.figure(figsize=(12,8))
+            if(self.sim):
+                visuals.plot_2D_potential(self.sim.central_potential, xlim=self.xlim, ylim=self.ylim)
+            plt.xlim(self.xlim)
+            plt.ylim(self.ylim)
+            plt.scatter(target[0], target[1], s=0.85, c='black')
+            plt.close()
+            s['training/forward_samples'] = (fig, self.epoch)
+        return s
+
+class LogGaussPlot(Logging):
     def __init__(self, decorated_model):
         Logging.__init__(self, decorated_model)
 
@@ -60,8 +85,10 @@ class LogTargetPlot(Logging):
         s = self.decorated_model.get_state()
         if(self.batch_iteration == 0):
             target = self.forward_sample(2500)
-            s['training/forward_sample'] = (target, self.epoch)
+            gauss = self.backward_sample(target)
+            s['training/backward_sample'] = (gauss, self.epoch)
         return s
+
 
 # class FreeEnergyPlot(Logging):
 #     def __init__(self, decorated_model, RC_func):
@@ -81,17 +108,6 @@ class LogTargetPlot(Logging):
 #             s['training/free_energy'] = (samples, self.epoch) 
 
 
-class LogGaussPlot(Logging):
-    def __init__(self, decorated_model):
-        Logging.__init__(self, decorated_model)
-
-    def get_state(self):
-        s = self.decorated_model.get_state()
-        if(self.batch_iteration == 0):
-            target = self.forward_sample(2500)
-            gauss = self.backward_sample(target)
-            s['training/backward_sample'] = (gauss, self.epoch)
-        return s
 
 
 class Checkpointing(Logging):

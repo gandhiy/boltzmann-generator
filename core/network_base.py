@@ -138,7 +138,9 @@ class RealNVP(Network, tf.Module):
 
 
 
-    def __generate_multivariate_normal(self, loc=[0., 0.], scale=[1., 1.]):
+    def __generate_multivariate_normal(self, loc=[0.], scale=[1.]):
+        loc = self.in_shape[0] * loc
+        scale = self.in_shape[0] * scale
         return tfd.MultivariateNormalDiag(loc, scale)
 
 

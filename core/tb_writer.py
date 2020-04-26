@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 
 from PIL import Image
 from tools import fig2img
+from matplotlib.figure import Figure
 
 class ObserverInterface:
     def __init__(self):
@@ -23,24 +24,21 @@ class tensorboard_writer(ObserverInterface):
             if(type(v) == tuple):   
                 if(isinstance(v[0], (tf.Tensor))):
                     self.process_tensors(k,v)            
-                
+                if(isinstance(v[0], (Figure))):
+                    self.process_images(k, v[0], v[1])
 
     def process_tensors(self, k,v):
         if(isinstance(v[0].numpy(), (np.floating))):
             self._update_scalers(k, v[0], v[1])
-        elif(isinstance(v[0].numpy(), (np.ndarray))):
-            self._update_images(k, v[0], v[1])
+
 
     def _update_scalers(self,tag, value, step):
         with self.writer.as_default():
             tf.summary.scalar(tag, value, step=step)
 
 
-    def _update_images(self, tag, value, step):
-        fig = plt.figure(figsize=(10,10), dpi=100)
-        plt.scatter(value.numpy().T[0], value.numpy().T[1])
+    def process_images(self, tag, fig, step):
         im = np.array(fig2img(fig))
-        plt.close()
         im = im.reshape((-1, im.shape[0], im.shape[1], im.shape[2]))
         with self.writer.as_default():
             tf.summary.image(tag, im, step=step)

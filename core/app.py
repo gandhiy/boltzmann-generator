@@ -14,7 +14,6 @@ plt.style.use("fivethirtyeight")
 
 def main():
     num_samples = st.sidebar.slider("Number of samples to run", min_value=500, max_value=25000, value=5000)
-    # simulation_type = st.sidebar.selectbox("Select which simulation was used to train the model", ["Double Well", "Mueller Well", "Dimer in a Solvent"])
     
     plot_choice = st.sidebar.selectbox("Which diagram plot?", ["Free Energy", "Samples"])
     model_file = st.sidebar.text_input("Path to a saved checkpoint", value="")
@@ -30,7 +29,7 @@ def main():
 
 @st.cache(suppress_st_warning=True, hash_funcs={RealNVP: hash})
 def initialize_model(path):
-    loss = getLoss().basic_loss()
+    loss = getLoss().maximum_likelihood_loss()
     opt = getOpt().rmsprop(1e-4)
     m = RealNVP(loss, opt)
     if path is not "":
