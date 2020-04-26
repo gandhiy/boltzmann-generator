@@ -90,25 +90,6 @@ class LogGaussPlot(Logging):
         return s
 
 
-# class FreeEnergyPlot(Logging):
-#     def __init__(self, decorated_model, RC_func):
-#         Logging.__init__(self, decorated_model)
-#         self.RC_func = RC_func
-
-#     def get_state(self):
-#         s = self.decorated_model.get_state()
-#         if(self.batch_iteration == 0):
-#             samples = []
-#             for t in self.forward_sample(2500).numpy():
-#                 samples.append(self.RC_func(t))
-                
-#             ## generate the histogram values
-#             ## transform the histogram values
-
-#             s['training/free_energy'] = (samples, self.epoch) 
-
-
-
 
 class Checkpointing(Logging):
     def __init__(self, decorated_model, freq = 1):
