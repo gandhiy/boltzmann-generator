@@ -24,8 +24,11 @@ class tensorboard_writer(ObserverInterface):
             if(type(v) == tuple):   
                 if(isinstance(v[0], (tf.Tensor))):
                     self.process_tensors(k,v)            
-                if(isinstance(v[0], (Figure))):
+                elif(isinstance(v[0], (Figure))):
                     self.process_images(k, v[0], v[1])
+                elif(isinstance(v[0], (int, float, ))):
+                    self._update_scalers(k, v[0], v[1])
+        
 
     def process_tensors(self, k,v):
         if(isinstance(v[0].numpy(), (np.floating))):
