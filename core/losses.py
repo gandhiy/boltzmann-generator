@@ -13,8 +13,8 @@ class getLoss:
         loss = MLLoss(c1)
         return loss.lossFunction
 
-    def kl_loss(self, simulation, c1 = 1.0, ndims = 2):
-        loss = KLLoss(c1, simulation, ndims)
+    def kl_loss(self, simulation, c1 = 1.0, ndims = 2, ehigh = 1e10, emax = 1e20):
+        loss = KLLoss(c1, simulation, ndims, ehigh, emax)
         return loss.lossFunction
         
 class lossInterface:
@@ -36,32 +36,39 @@ class MLLoss(lossInterface):
 
 
 class KLLoss(lossInterface):
-    def __init__(self, c1, simulation, ndims):
+    def __init__(self, c1, simulation, ndims, ehigh = 1e5, emax = 1e10):
         super(KLLoss, self).__init__()
         self.c1 = c1
         self.u = simulation.getEnergy
-        self.n = 2
-        
+        self.n = ndims
+        self.e_high = ehigh
+        self.e_max = emax
+    
+    def scale_energy(self, e):
+        if e < self.e_high:
+            return e
+        elif (e >= self.e_high) and (e < self.e_max):
+            return self.e_high + np.log( min(e, self.e_max) - self.e_high + 1)
 
     def lossFunction(self, model, samples):
-        real_space = model.sample(1000)
-        gauss_samples = model.distribution.sample(1000)
-        energies = tf.convert_to_tensor(np.array([self.u(np.expand_dims(s, axis=0)) for s in real_space],dtype=np.float32))
-        return self.c1 * tf.reduce_mean(energies + model.bijector.forward_log_det_jacobian(gauss_samples, self.n))
+        gauss_samples = model.distribution.sample(2500)
+        real_space = model.bijector.forward(gauss_samples)
+        energies = tf.convert_to_tensor(np.array([self.scale_energy(self.u(np.expand_dims(s, axis=0))) for s in real_space],dtype=np.float32))
+        return self.c1 * tf.reduce_mean(energies - model.bijector.forward_log_det_jacobian(gauss_samples, self.n))
 
 
 
 
-class permutation_invariance_loss(lossInterface):
-    def __init__(self, c1, number_of_permutes):
-        super(permutation_invariance_loss, self).__init__()
-        self.c1 = c1
-        self.number_of_permutes = number_of_permutes
+# class permutation_invariance_loss(lossInterface):
+#     def __init__(self, c1, number_of_permutes):
+#         super(permutation_invariance_loss, self).__init__()
+#         self.c1 = c1
+#         self.number_of_permutes = number_of_permutes
 
-    def lossFunction(self, model, samples):
-        total_loss = 0
-        # generate a set of permutation off of the samples
-        # calculate an average loss based on the permutations using
-        # 
+#     def lossFunction(self, model, samples):
+#         total_loss = 0
+#         # generate a set of permutation off of the samples
+#         # calculate an average loss based on the permutations using
+#         # 
 
-        return super().lossFunction(model, samples)
+#         return super().lossFunction(model, samples)
