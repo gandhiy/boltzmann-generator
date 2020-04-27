@@ -182,7 +182,11 @@ class System(data_logging.Subject):
     # def __init__(self, potential, particle_1, particle_2, particle_interactions = False, bc = None):
 
     def add_bond(self, potential, particle_i, particle_j):
-        self.bonds.append(Bond(potential, particle_i, particle_j, bc = self.bc))
+        particle_1 = self.particles[particle_i]
+        particle_2 = self.particles[particle_j]
+        self.particles.insert(0, self.particles.pop(particle_j))
+        self.particles.insert(0, self.particles.pop(self.particles.index(particle_1)))
+        self.bonds.append(Bond(potential, particle_1, particle_2, bc = self.bc))
 
 
 

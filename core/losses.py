@@ -40,7 +40,6 @@ class KLLoss(lossInterface):
         self.u = simulation.getEnergy
         self.n = 2
         
-
     def lossFunction(self, model, samples):
         real_space = model.bijector.sample(1000)
         gauss_samples = model.distribution.sample(1000)

@@ -372,9 +372,7 @@ class MetropolisIntegrator(Integrator):
 
     def integrate(self):
         r = self.system.get_coordinates()
-        i_prop = np.random.randint(0, len(self.system.particles))
-        delta_r = np.zeros(r.shape)
-        delta_r[i_prop, :] = self.sigma * np.random.randn(self.system.dim, )
+        delta_r = self.sigma * np.random.randn(*r.shape)
         r_prop = self.system.bc(r + delta_r)
         e_proposed = self.calculate_energy(r_prop)[0]
         delta_E = e_proposed - self.energy
