@@ -67,12 +67,12 @@ class LogTargetPlot(Logging):
         s = self.decorated_model.get_state()
         if(self.batch_iteration == 0):
             target = self.forward_sample(2500).numpy().T
-            fig = plt.figure(figsize=(9, 6))
+            fig = plt.figure(figsize=(12, 8), dpi = 100)
             if(self.sim):
-                visuals.plot_2D_potential(self.sim.central_potential, xlim=self.xlim, ylim=self.ylim)
+                visuals.plot_2D_potential(self.sim.central_potential, xlim=self.xlim, ylim=self.ylim, cmap='jet')
             plt.xlim(self.xlim)
             plt.ylim(self.ylim)
-            plt.scatter(target[0], target[1], s=0.85, c='black')
+            plt.scatter(target[0], target[1], s=1.15, c='white')
             plt.close()
             s['training/forward_samples'] = (fig, self.epoch)
         return s
@@ -115,7 +115,7 @@ class FreeEnergyPlot(Logging):
             counts, bins = np.histogram(rc_samples, weights=weights, bins=self.bins)
             probs = (counts / np.sum(counts)) + 1e-9
             bin_centers = (bins[:-1] + bins[1:])/2.0
-            fig = plt.figure(figsize = (9, 6), dpi = 150)
+            fig = plt.figure(figsize = (12, 8), dpi = 100)
             FE = -np.log(probs)
             plt.plot(bin_centers, FE)
             plt.close()
