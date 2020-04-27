@@ -40,6 +40,9 @@ class Simulation(ABC):
     def getEnergy(self, coords):
         pass
 
+    def getData(self):
+        pass
+
 class MuellerWellSim(Simulation):
     def __init__(self, config_file):
         super().__init__(config_file)
@@ -69,6 +72,9 @@ class MuellerWellSim(Simulation):
         self.system.set_coordinates(coords)
         return self.system.get_energy()[1]
 
+    def getData(self):
+        return(np.array(self.coordinate_logger.coordinates))
+
 class DoubleWellSim(Simulation):
     def __init__(self, config_file):
         super().__init__(config_file)
@@ -96,6 +102,9 @@ class DoubleWellSim(Simulation):
         self.system.set_coordinates(coords)
         return self.system.get_energy()[1]
 
+    def getData(self):
+        return(np.array(self.coordinate_logger.coordinates))
+
 class DimerLJFluidSim(Simulation):
     def __init__(self, config_file):
         super().__init__(config_file)
@@ -120,4 +129,7 @@ class DimerLJFluidSim(Simulation):
     def getEnergy(self, coords):
         self.system.set_coordinates(coords)
         return self.system.get_energy()[1]
+        
+    def getData(self):
+        return(np.array(self.coordinate_logger.coordinates))
 

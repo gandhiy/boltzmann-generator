@@ -1,13 +1,10 @@
 import sys
 import visuals
 import tensorflow as tf
-<<<<<<< HEAD
 import numpy as np
-=======
 import matplotlib.pyplot as plt
 
 
->>>>>>> e531695f271da080f0f9571ecfb5d92ad8050134
 from network_base import Network
 from pdb import set_trace as debug
 
@@ -93,7 +90,6 @@ class LogGaussPlot(Logging):
             s['training/backward_sample'] = (gauss, self.epoch)
         return s
 
-<<<<<<< HEAD
 class FreeEnergyPlot(Logging):
     def __init__(self, decorated_model, simulation, RC_func, bins = 200):
         Logging.__init__(self, decorated_model)
@@ -120,25 +116,6 @@ class FreeEnergyPlot(Logging):
             plt.plot(bin_centers, FE)
             ## transform the histogram values
             s['training/free_energy'] = (fig, self.epoch)
-=======
-
-# class FreeEnergyPlot(Logging):
-#     def __init__(self, decorated_model, RC_func):
-#         Logging.__init__(self, decorated_model)
-#         self.RC_func = RC_func
-
-#     def get_state(self):
-#         s = self.decorated_model.get_state()
-#         if(self.batch_iteration == 0):
-#             samples = []
-#             for t in self.forward_sample(2500).numpy():
-#                 samples.append(self.RC_func(t))
-                
-#             ## generate the histogram values
-#             ## transform the histogram values
-
-#             s['training/free_energy'] = (samples, self.epoch) 
->>>>>>> e531695f271da080f0f9571ecfb5d92ad8050134
 
 
 

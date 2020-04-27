@@ -24,14 +24,13 @@ class lossInterface:
         raise NotImplementedError
 
 
-
 class MLLoss(lossInterface):
     def __init__(self, c1):
         super(MLLoss, self).__init__()
         self.c1 = c1
 
     def lossFunction(self, model, samples):
-        return -self.c1 * tf.reduce_mean(model.log_prob(samples))
+        return -self.c1 * model.flow.log_prob(samples)
 
 
 class KLLoss(lossInterface):
@@ -47,8 +46,6 @@ class KLLoss(lossInterface):
         gauss_samples = model.distribution.sample(1000)
 
         return self.c1 * tf.reduce_mean(tf.add(self.u(real_space) - model.bijector.forward_log_det_jacobian(gauss_samples, self.n)))
-
-
 
 
 class permutation_invariance_loss(lossInterface):
