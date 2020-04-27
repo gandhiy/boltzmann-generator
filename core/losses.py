@@ -1,3 +1,4 @@
+import numpy as np
 import tensorflow as tf 
 import tensorflow_probability as tfp
 
@@ -12,8 +13,8 @@ class getLoss:
         loss = MLLoss(c1)
         return loss.lossFunction
 
-    def kl_loss(self, energy_function, c1 = 1.0, ndims = 2):
-        loss = KLLoss(c1, energy_function, ndims)
+    def kl_loss(self, simulation, c1 = 1.0, ndims = 2):
+        loss = KLLoss(c1, simulation, ndims)
         return loss.lossFunction
         
 class lossInterface:
@@ -34,19 +35,19 @@ class MLLoss(lossInterface):
         return -self.c1 * tf.reduce_mean(model.log_prob(samples))
 
 
-def KLLoss(lossInterface):
-    def __init__(self, c1, energy_function, ndims):
+class KLLoss(lossInterface):
+    def __init__(self, c1, simulation, ndims):
         super(KLLoss, self).__init__()
         self.c1 = c1
-        self.u = energy_function
+        self.u = simulation.getEnergy
         self.n = 2
         
 
     def lossFunction(self, model, samples):
-        real_space = model.bijector.sample(1000)
+        real_space = model.sample(1000)
         gauss_samples = model.distribution.sample(1000)
-
-        return self.c1 * tf.reduce_mean(tf.add(self.u(real_space), model.bijector.forward_log_det_jacobian(gauss_samples, self.n)))
+        energies = tf.convert_to_tensor(np.array([self.u(np.expand_dims(s, axis=0)) for s in real_space],dtype=np.float32))
+        return self.c1 * tf.reduce_mean(energies + model.bijector.forward_log_det_jacobian(gauss_samples, self.n))
 
 
 

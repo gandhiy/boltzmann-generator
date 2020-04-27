@@ -1,11 +1,11 @@
 import sys
 import visuals
 import tensorflow as tf
+import numpy as np
 import matplotlib.pyplot as plt
 
 
 from network_base import Network
-from pdb import set_trace as debug
 
 
 class Logging(Network):
@@ -57,9 +57,9 @@ class LogLoss(Logging):
 
 
 class LogTargetPlot(Logging):
-    def __init__(self, decorated_model, sim=None, xlim = [-1.5, 1.5], ylim = [-0.5, 2.01]):
+    def __init__(self, decorated_model, simulation=None, xlim = [-1.5, 1.5], ylim = [-0.5, 2.01]):
         Logging.__init__(self, decorated_model)
-        self.sim = sim
+        self.sim = simulation
         self.xlim = xlim
         self.ylim = ylim
 
@@ -67,7 +67,7 @@ class LogTargetPlot(Logging):
         s = self.decorated_model.get_state()
         if(self.batch_iteration == 0):
             target = self.forward_sample(2500).numpy().T
-            fig = plt.figure(figsize=(12,8))
+            fig = plt.figure(figsize=(9, 6))
             if(self.sim):
                 visuals.plot_2D_potential(self.sim.central_potential, xlim=self.xlim, ylim=self.ylim)
             plt.xlim(self.xlim)
@@ -76,6 +76,7 @@ class LogTargetPlot(Logging):
             plt.close()
             s['training/forward_samples'] = (fig, self.epoch)
         return s
+
 
 class LogGaussPlot(Logging):
     def __init__(self, decorated_model):
@@ -90,6 +91,38 @@ class LogGaussPlot(Logging):
         return s
 
 
+class FreeEnergyPlot(Logging):
+    def __init__(self, decorated_model, simulation, RC_func, bins = 200):
+        Logging.__init__(self, decorated_model)
+        self.RC_func = RC_func
+        self.simulation = simulation
+        self.bins = bins
+    
+    def get_state(self):
+        s = self.decorated_model.get_state()
+        if(self.batch_iteration == 0):
+            rc_samples = []
+            weights = []
+            samples = self.forward_sample(2500).numpy()
+            log_probs = self.flow.log_prob(samples, event_ndims=samples.shape[1]).numpy().diagonal()
+
+
+            for (t, lp) in list(zip(samples,  log_probs)):
+                rc_samples.append(self.RC_func(t))
+                weights.append(np.exp(-self.simulation.getEnergy(np.expand_dims(t, axis=0)) + lp))
+
+            ## generate the histogram values
+            counts, bins = np.histogram(rc_samples, weights=weights, bins=self.bins)
+            probs = (counts / np.sum(counts)) + 1e-9
+            bin_centers = (bins[:-1] + bins[1:])/2.0
+            fig = plt.figure(figsize = (9, 6), dpi = 150)
+            FE = -np.log(probs)
+            plt.plot(bin_centers, FE)
+            plt.close()
+            ## transform the histogram values
+            s['training/free_energy'] = (fig, self.epoch)
+
+        return s
 
 class Checkpointing(Logging):
     def __init__(self, decorated_model, freq = 1):

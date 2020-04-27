@@ -40,6 +40,9 @@ class Simulation(ABC):
     def getEnergy(self, coords):
         pass
 
+    def getData(self):
+        pass
+
 class MuellerWellSim(Simulation):
     def __init__(self, config_file):
         super().__init__(config_file)
@@ -69,6 +72,9 @@ class MuellerWellSim(Simulation):
         self.system.set_coordinates(coords)
         return self.system.get_energy()[1]
 
+    def getData(self):
+        return(np.array(self.coordinate_logger.coordinates))
+
 class DoubleWellSim(Simulation):
     def __init__(self, config_file):
         super().__init__(config_file)
@@ -96,12 +102,15 @@ class DoubleWellSim(Simulation):
         self.system.set_coordinates(coords)
         return self.system.get_energy()[1]
 
+    def getData(self):
+        return(np.array(self.coordinate_logger.coordinates))
+
 class DimerLJFluidSim(Simulation):
     def __init__(self, config_file):
         super().__init__(config_file)
         self.system_builder = simulation_library.SystemFactory()
         self.system = self.system_builder.build_system(dim = 2, **self.config["system_params"])
-        self.system.add_bond(potentials.DoubleWellPotential1D(1.5, 25, 10, -0.5), self.system.particles[5], self.system.particles[6])
+        self.system.add_bond(potentials.DoubleWellPotential1D(1.5, 25, 10, -0.5), self.config["bond_indexes"][0], self.config["bond_indexes"][1])
         self.system.bonds[0].particle_interactions = False
         self.system.central_potential = potentials.HarmonicBox(l_box = 3.0, k_box = 100)
         self.system.get_integrator(self.config["integrator"], **self.config["integrator_args"])
@@ -120,4 +129,7 @@ class DimerLJFluidSim(Simulation):
     def getEnergy(self, coords):
         self.system.set_coordinates(coords)
         return self.system.get_energy()[1]
+        
+    def getData(self):
+        return(np.array(self.coordinate_logger.coordinates))
 
