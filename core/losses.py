@@ -44,7 +44,6 @@ class KLLoss(lossInterface):
     def lossFunction(self, model, samples):
         real_space = model.bijector.sample(1000)
         gauss_samples = model.distribution.sample(1000)
-
         return self.c1 * tf.reduce_mean(tf.add(self.u(real_space) - model.bijector.forward_log_det_jacobian(gauss_samples, self.n)))
 
 
