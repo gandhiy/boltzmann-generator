@@ -1,3 +1,7 @@
+# basic network architecture:
+# https://github.com/MokkeMeguru/glow-realnvp-tutorial/blob/master/tips/RealNVP_tutorial_en.ipynb
+
+
 import os 
 import numpy as np
 import tensorflow as tf
@@ -13,9 +17,10 @@ from tensorflow.keras.layers import Layer, Dense, BatchNormalization, ReLU
 tfd = tfp.distributions
 tfb = tfp.bijectors
 
-from pdb import set_trace as debug
-
 class NN(Layer): 
+    """
+    Base neural network block for building a single RealNVP layer
+    """
     def __init__(self, in_shape, hidden_layers=[512,512], activation="relu", name="nn"):
         super(NN, self).__init__(name="nn")
         layer_list = []
@@ -34,8 +39,12 @@ class NN(Layer):
         t = self.t_layer(y)
         return log_s, t 
 
-
 class RealNVPLayer(tfp.bijectors.Bijector):
+    """
+    A basic RealNVP layer built using two neural network blocks (one for the
+    forward sample and one for backward sample)
+
+    """
     def __init__(self, model, in_shape, hidden_layers=[512,512], forward_min_event_ndims=1, validate_args: bool = False, name='real_nvp'):
         super(RealNVPLayer, self).__init__(validate_args=validate_args, forward_min_event_ndims=forward_min_event_ndims, name=name)
         self.in_shape = in_shape
@@ -71,7 +80,6 @@ class RealNVPLayer(tfp.bijectors.Bijector):
         log_s, t = self.nn(x_b)
         return log_s
 
-
 class Network(ABC):
 
     def summary(self):
@@ -103,12 +111,23 @@ class Network(ABC):
 
 class RealNVP(Network, tf.Module):
     def __init__(self, loss, optimizer, chain_length = 6, in_shape = [2], 
-        nn_layers=[256, 256], loc=[0., 0.], scale=[1., 1.],
-        model_name=None):
-        super(RealNVP, self).__init__()
+        loc = [0.0, 0.0], scale = [1.0,1.0], nn_layers=[256, 256], model_name="temp"):
 
-        self.loc = loc
-        self.scale = scale
+        """
+         RealNVP network built with the specificed loss function and optimizer.
+
+         PARAMETERS:
+         * loss (losses.lossfunction) the loss function that points the gradients in
+         the correct direction
+
+         * optimizer (tensorflow.keras.optimizer) the gradient optimizer 
+
+         * chain length (int) number of realnvp layers    
+         * nn_layers (array) shape of neural network block
+         * model_name (string) name to save model under 
+
+         """ 
+        super(RealNVP, self).__init__()
         self.model_name = model_name
         self.loss = loss
         self.opt = optimizer
@@ -123,8 +142,8 @@ class RealNVP(Network, tf.Module):
             self.chain.append(tfp.bijectors.Permute([1, 0]))
         
         self.flow = tfd.TransformedDistribution(
-            distribution=self.__generate_multivariate_normal(self.loc, self.scale),
-            bijector=tfb.Chain(list(reversed(self.chain)))
+            distribution=self.__generate_multivariate_normal(loc=loc, scale=scale),
+            bijector=tfb.Chain(list(reversed(self.chain)))            
         )
 
         if model_name is not None:
@@ -136,13 +155,8 @@ class RealNVP(Network, tf.Module):
         self.training_iteration = 0
         self.ckpt = tf.train.Checkpoint(model=self.flow)
 
-
-
     def __generate_multivariate_normal(self, loc=[0.], scale=[1.]):
-        loc = self.in_shape[0] * loc
-        scale = self.in_shape[0] * scale
         return tfd.MultivariateNormalDiag(loc, scale)
-
 
     def __set_up_logging(self, mn):
         self.save_path = f"../checkpoints/{mn}"
@@ -160,18 +174,49 @@ class RealNVP(Network, tf.Module):
         self.log = tensorboard_writer(tf.summary.create_file_writer(logs))
 
     def summary(self):
+        """"
+         prints a summary of the model architecture
+        """
         for i,layer in enumerate(self.chain):
             x = Input([2])
             y = layer.forward(x)
             Model(x,y,name=f'layer_{i}_summary').summary()
 
     def forward_sample(self, n):
+        """
+         sample from the network-based distribution 
+
+         PARAMETERS:
+         * n (int): number of samples
+
+         RETURNS:
+         * samples (tensorflow.Tensor): samples from the distribution
+        """
         return self.flow.sample(n)
 
     def backward_sample(self, target):
+        """
+         backward sampling through the neural network transforms 
+         forward samples back into the gaussian normal space
+
+         PARAMETERS:
+         * target (tensorflow.Tensor or numpy.ndarray): forward samples
+
+         RETURNS:
+         * backward_samples (tensorflow.Tensor): samples for the input distribution
+        """
         return self.flow.bijector.inverse(target)
 
-    def train(self, x, step):        
+    def train(self, x, step):       
+        """
+         A single training step on the realNVP network
+
+         PARAMETERS:
+         * x (tensorflow.Tensor): a minibatch of samples
+         * step (tuple - (int, int, int)): epoch, training iteration, and batch
+         iteration 
+
+        """ 
         self.epoch, self.training_iteration, self.batch_iteration = step
         
         # calculate loss
@@ -179,16 +224,30 @@ class RealNVP(Network, tf.Module):
             self.loss_value = self.loss(self.flow, x)
         
         grads = tape.gradient(self.loss_value, self.flow.trainable_variables)
+        grads = [grad if grad is not None else tf.zeros_like(var) for var, grad in zip(self.flow.trainable_variables, grads)]
+
         self.opt.apply_gradients(zip(grads, self.flow.trainable_variables))
         self.state.update(self.get_state())
 
     def save(self, name=None):
+        """
+         save the current state of the model
+
+         * name (string): folder name
+        """
         if name is None:
             name = f"saved_models/epoch_{self.epoch}/ckpt"
         save_path = os.path.join(self.save_path, name)
         return self.ckpt.save(save_path)
 
     def load(self, path):
+        """
+         Load in checkpoint for a model. Ignore 
+         extensions, just use [path]/[name]
+
+         * path
+        """
+
         self.ckpt.restore(path).assert_consumed()
 
     def get_state(self):
