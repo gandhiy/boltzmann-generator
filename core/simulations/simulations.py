@@ -39,9 +39,8 @@ class SimulationData:
             self.simulation_data = np.array(self.simulation.coordinate_logger.coordinates)
         return self.simulation_data
 
-    def getEnergy(self):
-        return self.simulation.getEnergy()
-
+    def getEnergy(self, coords = None):
+        return self.simulation.getEnergy(coords)
 
 class Simulation(ABC):
     def __init__(self, config_file):
@@ -87,8 +86,9 @@ class MuellerWellSim(Simulation):
     def runSimulation(self):
         self.system.run(self.config["n_steps"])
 
-    def getEnergy(self, coords):
-        self.system.set_coordinates(coords)
+    def getEnergy(self, coords = None):
+        if coords is not None:
+            self.system.set_coordinates(coords)
         return self.system.get_energy()[1]
 
     def getEnergy_tf(self, coords):
@@ -121,8 +121,9 @@ class DoubleWellSim(Simulation):
     def runSimulation(self):
         self.system.run(self.config["n_steps"])
 
-    def getEnergy(self, coords):
-        self.system.set_coordinates(coords)
+    def getEnergy(self, coords = None):
+        if coords is not None:
+            self.system.set_coordinates(coords)
         return self.system.get_energy()[1]
 
     def getEnergy_tf(self, coords):
@@ -153,8 +154,9 @@ class DimerLJFluidSim(Simulation):
     def runSimulation(self):
         self.system.run(self.config["n_steps"])
 
-    def getEnergy(self, coords):
-        self.system.set_coordinates(coords)
+    def getEnergy(self, coords = None):
+        if coords is not None:
+            self.system.set_coordinates(coords)
         return self.system.get_energy()[1]
 
     def getEnergy_tf(self, coords):

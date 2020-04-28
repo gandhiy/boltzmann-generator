@@ -1,5 +1,5 @@
 # Dimer in Solution Config File
-
+simulation_name : "dimer-lj-sim"
 integrator : "metropolis"
 integrator_args : {
   temp : 1,
@@ -16,3 +16,4 @@ system_params : {
   sigma : 1.1,
   epsilon : 1.0,
 }
+bond_indexes : [14, 15]

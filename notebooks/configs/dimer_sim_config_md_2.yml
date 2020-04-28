@@ -17,4 +17,4 @@ system_params : {
   sigma : 1.1,
   epsilon : 1.0,
 }
-bond_indexes : [14, 15]
+bond_indexes : [14, 16]
