@@ -26,7 +26,7 @@ class SimulationData:
         self.simulation_data = np.load(data_file)
 
     def saveSimulation(self, data_file):
-        np.save(data_file, self.simulation_data)
+        np.save(data_file, self.simulation_data, allow_pickle = True)
 
     def getSimulation(self):
         return self.simulation
