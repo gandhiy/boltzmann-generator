@@ -2,11 +2,11 @@
 The boltzmann generator is used to sample configurations from different molecular dynamics simulations. The model learns valid configurations under the dynamics of the given simulation.
 
 Content
-* [Team Members](##team)
-* [Requirements](##requirements-and-install)
-* [Coding-Example](##code-base-example)
-* [Tensorboard](##viewing-the-tensorboard)
-* [Streamlit](##running-the-streamlit-application)
+- [Team Members](#team)
+- [Requirements](#requirements-and-install)
+- [Coding-Example](#code-base-example)
+- [Tensorboard](#viewing-the-tensorboard)
+- [Streamlit](#running-the-streamlit-application)
 
 
 ## Team: 
