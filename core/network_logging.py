@@ -104,7 +104,7 @@ class DimerAverageLocationPlot(Logging):
             plt.plot(average_positions[:, 0], average_positions[:, 1], 'o', c='red', markersize=8)
             plt.close()
             s['training/average_dimer_position'] = (fig, self.epoch)
-
+        return s
 
 
 
