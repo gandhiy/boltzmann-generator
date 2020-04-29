@@ -5,8 +5,8 @@ integrator_args : {
   dt : 0.0005
 }
 x_0 : [2 , 0]
-out_freq : 100
-n_steps : 50000
+out_freq : 10
+n_steps : 500000
 system_params : {
   N : 36,
   rho : 1.0,

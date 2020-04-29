@@ -8,4 +8,4 @@ integrator_args : {
 }
 x_0 : [-0.5, 1.5]
 out_freq : 100
-n_steps : 100000
+n_steps : 250000

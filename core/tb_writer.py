@@ -15,6 +15,12 @@ class ObserverInterface:
 
 class tensorboard_writer(ObserverInterface):
     def __init__(self, writer):
+        """
+         Observer that parses training data onto the tensorboard
+
+         PARAMETER:
+         * writer: a tensorboard summary writer object initialized by RealNVP
+        """
         super(tensorboard_writer, self).__init__()
         self.writer = writer
 

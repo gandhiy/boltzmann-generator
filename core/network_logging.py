@@ -12,9 +12,9 @@ class Logging(Network):
     def __init__(self, decorated_model):
         self.decorated_model = decorated_model
         self.log = self.decorated_model.log
-        self.log = self.decorated_model.log
         self.loss_value = self.decorated_model.loss_value
         self.flow = self.decorated_model.flow
+        self.opt = self.decorated_model.opt
 
     def summary(self):
         self.decorated_model.summary()
@@ -90,6 +90,10 @@ class LogTargetPlot(Logging):
 
 class LogGaussPlot(Logging):
     def __init__(self, decorated_model):
+        """
+         Sample from the model and pass it backward through the network to 
+         plot the gaussian distribution used for network input
+        """
         Logging.__init__(self, decorated_model)
 
     def get_state(self):
@@ -102,6 +106,11 @@ class LogGaussPlot(Logging):
 
 class DimerAverageLocationPlot(Logging):
     def __init__(self, decorated_model):
+        """
+         Because the Dimer is very high dimensional, it requires a more complex 
+         processing. This logging function will plot the average position of the
+         solvents and dimer particles.
+        """
         Logging.__init__(self, decorated_model)
 
     def get_state(self):
@@ -119,7 +128,17 @@ class DimerAverageLocationPlot(Logging):
         return s
 
 class FreeEnergyPlot(Logging):
-    def __init__(self, decorated_model, simulation, RC_func, bins = 200, reshape=None):
+    def __init__(self, decorated_model, simulation, RC_func, bins = 200, reshape=(1,2)):
+        """
+         Plots the free energy diagram using a given reaction coordinate
+
+         PARAMETERS:
+         * simulation: simulation function used to train the model
+         * RC_func: function to transform sample to reaction coordinate space
+         * bins: number of bins in historgram
+         * reshape: shape to change a single sample
+
+        """
         Logging.__init__(self, decorated_model)
         self.RC_func = RC_func
         self.simulation = simulation
@@ -158,6 +177,12 @@ class FreeEnergyPlot(Logging):
 
 class Checkpointing(Logging):
     def __init__(self, decorated_model, freq = 1):
+        """ 
+         Intermediate saving 
+
+         PARAMETERS:
+         * freq: how frequently to save the model over epochs
+        """
         Logging.__init__(self, decorated_model)
         self.freq = freq
 
@@ -166,4 +191,13 @@ class Checkpointing(Logging):
             self.save()
         return self.decorated_model.get_state()
 
-    
+class LogLearningRate(Logging):
+    def __init__(self, decorated_model):
+        """
+         Plot the learning rate especially if using a decay
+        """
+        Logging.__init__(self, decorated_model)
+    def get_state(self):
+        s = self.decorated_model.get_state()
+        s['training/learning_rate'] = (self.opt.get_config()['learning_rate'], self.training_iteration)
+        return s
