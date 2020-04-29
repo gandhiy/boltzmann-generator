@@ -8,8 +8,6 @@ import yaml
 
 class SimulationData:
     def __init__(self, config_file):
-        self.__simulation = None
-        self.simulation_name = None
         self.simulation_data = None
         self.config_file = config_file
         self.sim_dict = {
@@ -125,10 +123,6 @@ class DoubleWellSim(Simulation):
         if coords is not None:
             self.system.set_coordinates(coords)
         return self.system.get_energy()[1]
-
-    def getEnergy_tf(self, coords):
-        self.system.set_coordinates_tf(coords)
-        return self.system.get_energy_tf()[1]
 
     def getData(self):
         return(np.array(self.coordinate_logger.coordinates))

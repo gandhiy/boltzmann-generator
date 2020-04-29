@@ -2,7 +2,6 @@
 
 from abc import ABC, abstractmethod
 import numpy as np
-import tensorflow as tf
 import itertools
 import thermostats
 
@@ -447,26 +446,6 @@ class MetropolisIntegrator(Integrator):
             u_ji = self.system.particles[j].potential(r_ji)
             U += (u_ij + u_ji)/2
 
-        # Bond Energy Loop
-
-        return U, U, None
-
-    def calculate_energy_tf(self, coords = None):
-        if coords is None:
-            coords = self.system.get_coordinates_tf()
-        U = 0
-        # Central Potenial
-        if self.system.central_potential is not None:
-            for i in range(len(coords)):
-                U += self.system.central_potential.energy_tf(coords[i])
-        # Pairwize Energy
-        for pair in itertools.combinations(range(len(coords)), 2):
-            i, j = pair[0], pair[1]
-            r_ij = tf.Variable(self.system.bc(coords[i, :] - coords[j, :]))
-            r_ji = - r_ij
-            u_ij = self.system.particles[i].potential.tf_energy(r_ij)
-            u_ji = self.system.particles[j].potential.tf_energy(r_ji)
-            U += (u_ij + u_ji)/2
         # Bond Energy
         if len(self.system.bonds) > 0:
             for bond in self.system.bonds:
