@@ -60,7 +60,8 @@ trainer.train(20)
 To monitor training, the logging decorators push data to a tensorboard and displays values like the ones below:
 
 ![tb1](notebooks/images/tb_im1.png)
-![tb2](noteboooks/images/tb_im2.png)
+
+![tb2](notebooks/images/tb_im2.png)
 
 
 To view a tensorboard, inside of checkpoints run
@@ -77,3 +78,9 @@ Finally, we provide some simple interactive plots to view trained models through
 ```
 
 This will launch a local webapp that allows the user to interact with outputs of models from different simulations. 
+
+
+![st](notebooks/images/streamlit.png)
+
+
+Here, streamlit is using a trained model checkpoint on the double moon simulation to output forward samples on top of the known central potential function.
