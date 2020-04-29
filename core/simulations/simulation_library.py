@@ -95,9 +95,9 @@ class SystemFactory:
         self.get_dofs(system, placement_method)
         return system
 
-    def get_dofs(self, system, placement_method):
+    def get_dofs(self, system, boundary_conditions):
         system.dof = system.dim * len(system.particles)
-        if placement_method == "periodic":
+        if boundary_conditions == "periodic":
             system.dof -= system.dim
         
     def add_central_potential(self, system, central_potential, **kwargs):
@@ -212,12 +212,6 @@ class System(data_logging.Subject):
 
     def get_coordinates(self):
         coords = np.zeros((len(self.particles), self.dim))
-        for i in range(len(self.particles)):
-            coords[i ,:] = self.particles[i].loc
-        return coords
-
-    def get_coordinates_tf(self):
-        coords = tf.zeros((len(self.particles), self.dim))
         for i in range(len(self.particles)):
             coords[i ,:] = self.particles[i].loc
         return coords
