@@ -45,7 +45,6 @@ class Logging(Network):
     
     
 
-
 class LogLoss(Logging):
     def __init__(self, decorated_model):
         Logging.__init__(self, decorated_model)
@@ -90,13 +89,32 @@ class LogGaussPlot(Logging):
             s['training/backward_sample'] = (gauss, self.epoch)
         return s
 
+class DimerAverageLocationPlot(Logging):
+    def __init__(self, decorated_model):
+        Logging.__init__(self, decorated_model)
+
+    def get_state(self):
+        s = self.decorated_model.get_state()
+        if(self.batch_iteration == 0):
+            targets = self.forward_sample(2500).numpy().reshape((-1, 36, 2)) # (2500 x 36 x 2)
+            average_positions = np.mean(targets, axis=0)
+            fig = plt.figure(figsize=(12, 8), dpi=100)
+            plt.xlabel("Average x position")
+            plt.ylabel("Average y position")
+            plt.plot(average_positions[:, 0], average_positions[:, 1], 'o', c='red', markersize=8)
+            plt.close()
+            s['training/average_dimer_position'] = (fig, self.epoch)
+
+
+
 
 class FreeEnergyPlot(Logging):
-    def __init__(self, decorated_model, simulation, RC_func, bins = 200):
+    def __init__(self, decorated_model, simulation, RC_func, bins = 200, reshape=None):
         Logging.__init__(self, decorated_model)
         self.RC_func = RC_func
         self.simulation = simulation
         self.bins = bins
+        self.reshape = reshape
     
     def get_state(self):
         s = self.decorated_model.get_state()
@@ -104,12 +122,16 @@ class FreeEnergyPlot(Logging):
             rc_samples = []
             weights = []
             samples = self.forward_sample(2500).numpy()
-            log_probs = self.flow.log_prob(samples, event_ndims=samples.shape[1]).numpy().diagonal()
-
+            log_probs = self.flow.log_prob(samples, event_ndims=samples.shape[1]).numpy()
+            if(len(log_probs.shape) > 1):
+                log_probs = log_probs.diagonal()
+            
 
             for (t, lp) in list(zip(samples,  log_probs)):
                 rc_samples.append(self.RC_func(t))
-                weights.append(np.exp(-self.simulation.getEnergy(np.expand_dims(t, axis=0)) + lp))
+                if(self.reshape):
+                    t = t.reshape(self.reshape)
+                weights.append(np.exp(-self.simulation.getEnergy(t) + lp))
 
             ## generate the histogram values
             counts, bins = np.histogram(rc_samples, weights=weights, bins=self.bins)
@@ -117,7 +139,7 @@ class FreeEnergyPlot(Logging):
             bin_centers = (bins[:-1] + bins[1:])/2.0
             fig = plt.figure(figsize = (12, 8), dpi = 100)
             FE = -np.log(probs)
-            plt.plot(bin_centers, FE)
+            plt.plot(bin_centers[FE < -np.log(1e-9)], FE[FE < -np.log(1e-9)])
             plt.close()
             ## transform the histogram values
             s['training/free_energy'] = (fig, self.epoch)
