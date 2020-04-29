@@ -1,5 +1,6 @@
 ### Papers and references for invertible neural networks
 
+* Boltzmann Generator: https://science.sciencemag.org/content/365/6457/eaaw1147
 * Flow-based Deep Generative Models: https://lilianweng.github.io/lil-log/2018/10/13/flow-based-deep-generative-models.html
 * NAF: http://proceedings.mlr.press/v80/huang18d/huang18d.pdf
 * RealNVP: https://arxiv.org/pdf/1605.08803.pdf
