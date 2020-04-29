@@ -136,11 +136,25 @@ class RealNVP(Network, tf.Module):
         self.nn_layers = nn_layers
         self.chain_length = chain_length
 
+        if self.in_shape[-1] == 2:
+            for _ in range(self.chain_length):
+                self.chain.append(RealNVPLayer(NN, self.in_shape, self.nn_layers))
+                self.chain.append(tfp.bijectors.Permute([1, 0]))
+        else:
+            for _ in range(self.chain_length):
+                self.chain.append(
+                    tfb.RealNVP(
+                        num_masked=10,
+                        shift_and_log_scale_fn=tfb.real_nvp_default_template(
+                            hidden_layers=self.nn_layers,
+                            name='realnvp_block'
+                        )
+                    )
+                    
+                )
 
-        for _ in range(self.chain_length):
-            self.chain.append(RealNVPLayer(NN, self.in_shape, self.nn_layers))
-            self.chain.append(tfp.bijectors.Permute([1, 0]))
-        
+
+
         self.flow = tfd.TransformedDistribution(
             distribution=self.__generate_multivariate_normal(loc=loc, scale=scale),
             bijector=tfb.Chain(list(reversed(self.chain)))            
