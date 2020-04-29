@@ -13,6 +13,19 @@ class BoundaryCondition(ABC):
         
         
 class PeriodicBoundaryConditions(BoundaryCondition):
+    """
+    Class responsible for applying types of periodic boundary conditions
+
+
+    Attributes
+    ----------
+    system : System
+        system that is using the boundary conditions
+    Method
+    ------
+    __call__(coords)
+        apply boundary conditions to the coordinates
+    """
     def __init__(self, system):
         super().__init__(system)
 
@@ -20,6 +33,19 @@ class PeriodicBoundaryConditions(BoundaryCondition):
         return coords - self.system.box * np.round(coords / self.system.box)
 
 class NoBoundaryConditions(BoundaryCondition):
+    """
+    Class responsible for applying no boundary conditions
+
+
+    Attributes
+    ----------
+    system : System
+        system that is using the boundary conditions
+    Method
+    ------
+    __call__(coords)
+        apply boundary conditions to the coordinates
+    """
     def __init__(self, system):
         super().__init__(system)
     

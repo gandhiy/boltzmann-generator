@@ -7,6 +7,40 @@ import potentials
 import yaml
 
 class SimulationData:
+    """
+    Class for storing and using simulation data in conjunction with the Trainer object
+
+    Attributes
+    ----------
+    simulation_data : np.ndarray
+        simulation coordinates from any simualtion
+    config_file : string
+        location of config file
+    sim_dict : dict
+        dictionary containing the simulation types we've implemented
+    config : dict
+        dictionary built from config file detailing simulation setup
+    simulation : Simulation
+        object that perform the specific simualtions
+    simulation_name : string
+        name of the simulation being read from
+    
+    Methods
+    -------
+    loadSimulation(data_file)
+        read in previously run simulation data files
+    saveSimulation(data_file)
+        save the current simulation to a data file
+    getSimulation()
+        returns the simulation file within this object
+    runSimulation()
+        runs the simulation object
+    getData()
+        retrieves the simulation coordinates
+    getEnergy(coords)
+        calculate the energy of provided coordinates or the current state
+        of the simulation
+    """
     def __init__(self, config_file):
         self.simulation_data = None
         self.config_file = config_file
@@ -60,6 +94,30 @@ class Simulation(ABC):
         pass
 
 class MuellerWellSim(Simulation):
+    """
+    Simulation object that runs the MuellerWell simulation
+
+    Attributes
+    ----------
+    system : System
+        system object
+    central_potential : Potential
+        potential applied to system object
+    coordinate_logger : CoordinateLogger
+        class storing simulation coordinates
+    energy_logger : EnergyLogger
+        class storing simulation energy
+    
+    Methods
+    -------
+    runSimulation()
+        run the MullerWell simulation for the number of steps speicified
+        in the config file
+    getEnergy(coords)
+        get the energy of the Muller well system
+    getData()
+        return the coordinates from the coordinate logger
+    """
     def __init__(self, config_file):
         super().__init__(config_file)
         self.system = simulation_library.System(dim = 2)
@@ -89,14 +147,34 @@ class MuellerWellSim(Simulation):
             self.system.set_coordinates(coords)
         return self.system.get_energy()[1]
 
-    def getEnergy_tf(self, coords):
-        self.system.set_coordinates_tf(coords)
-        return self.system.get_energy_tf()[1]
-
     def getData(self):
         return(np.array(self.coordinate_logger.coordinates))
 
 class DoubleWellSim(Simulation):
+    """
+    Simulation object that runs the DoubleWell simulation
+
+    Attributes
+    ----------
+    system : System
+        system object
+    central_potential : Potential
+        potential applied to system object
+    coordinate_logger : CoordinateLogger
+        class storing simulation coordinates
+    energy_logger : EnergyLogger
+        class storing simulation energy
+    
+    Methods
+    -------
+    runSimulation()
+        run the double well simulation for the number of steps speicified
+        in the config file
+    getEnergy(coords)
+        get the energy of the double well system
+    getData()
+        return the coordinates from the coordinate logger
+    """
     def __init__(self, config_file):
         super().__init__(config_file)
         self.system = simulation_library.System(dim = 2)
@@ -128,6 +206,34 @@ class DoubleWellSim(Simulation):
         return(np.array(self.coordinate_logger.coordinates))
 
 class DimerLJFluidSim(Simulation):
+    """
+    Simulation object that runs the dimer in LJ bath simulation
+
+    Attributes
+    ----------
+    system : System
+        system object
+    system_builder : SystemFactory
+        object used to place particles in system
+    central_potential : Potential
+        potential applied to system object
+    coordinate_logger : CoordinateLogger
+        class storing simulation coordinates
+    energy_logger : EnergyLogger
+        class storing simulation energy
+    distance_logger : DistanceLogger
+        class for storing bond distance
+    
+    Methods
+    -------
+    runSimulation()
+        run the MullerWell simulation for the number of steps speicified
+        in the config file
+    getEnergy(coords)
+        get the energy of the Muller well system
+    getData()
+        return the coordinates from the coordinate logger
+    """
     def __init__(self, config_file):
         super().__init__(config_file)
         self.system_builder = simulation_library.SystemFactory()
@@ -152,10 +258,6 @@ class DimerLJFluidSim(Simulation):
         if coords is not None:
             self.system.set_coordinates(coords)
         return self.system.get_energy()[1]
-
-    def getEnergy_tf(self, coords):
-        self.system.set_coordinates_tf(coords)
-        return self.system.get_energy_tf()[1]
         
     def getData(self):
         return(np.array(self.coordinate_logger.coordinates))
