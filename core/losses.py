@@ -83,8 +83,6 @@ class RCKL(KLLoss):
 
     def lossFunction(self, model, samples):
         if(self.count < self.turnover):
-            import pdb 
-            pdb.set_trace()
             return -self.c1 * tf.reduce_mean(model.log_prob(samples))
         else:
             real_space = model.sample(len(samples))
