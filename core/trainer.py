@@ -20,7 +20,7 @@ class Trainer:
         _targets = tf.random.shuffle(targets)
         self.train_dataset = (
             tf.data.Dataset.from_tensor_slices(_targets)
-            .shuffle(10000).batch(256)
+            .shuffle(len(targets)).batch(256)
         )
 
         self.epoch = 0
