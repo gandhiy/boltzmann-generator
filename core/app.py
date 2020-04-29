@@ -40,11 +40,15 @@ def get_limits(sim):
     }
     return d[sim]
 
+
 @st.cache(suppress_st_warning=True, hash_funcs={RealNVP: hash})
-def initialize_model(path):
+def initialize_model(path, sim):
     loss = getLoss().ml_loss()
     opt = getOpt().rmsprop(1e-4)
-    m = RealNVP(loss, opt)
+    if sim == 'Bistable Dimer in LJ Fluid':
+        m = RealNVP(loss, opt, in_shape=[72], loc=[0.]*72, scale=[1.]*72, model_name=None)
+    else:
+        m = RealNVP(loss, opt)
     if path is not "":
         try:
             m.load(path)
@@ -53,22 +57,6 @@ def initialize_model(path):
             st.sidebar.text("Not a valid model path")
     return m
 
-
-@st.cache(suppress_st_warning=True, hash_funcs={RealNVP: hash})
-def generate_image(num_samples, model):
-    target = model.forward_sample(num_samples)
-    gauss = model.backward_sample(target)
-
-    fig1 = plt.figure(figsize=(10,10), dpi=150)
-    plt.scatter(target.numpy().T[0], target.numpy().T[1])
-    im1 = np.array(fig2img(fig1))
-    plt.close()
-
-    fig2 = plt.figure(figsize=(10,10), dpi=150)
-    plt.scatter(gauss.numpy().T[0], gauss.numpy().T[1])
-    im2 = np.array(fig2img(fig2))
-    plt.close()
-    return im1, im2
 
 
 @st.cache(suppress_st_warning=True, hash_funcs={RealNVP: hash})
@@ -92,6 +80,8 @@ def plot_samples(model, n, sim):
 
 @st.cache(suppress_st_warning=True, hash_funcs={RealNVP: hash})
 def plot_free_energy(model, n, sim):
+    bar = st.progress(0)
+    inc = 1.0/n
     rc_samples = []
     weights = []
 
@@ -100,17 +90,18 @@ def plot_free_energy(model, n, sim):
     simulation = SimulationData(config)
     
     targets = model.forward_sample(n).numpy()
-    probs = model.flow.log_prob(targets, events_ndims=targets.shape[1]).numpy()
-    if(len(probs.shape) > 1):
-        probs = probs.diagonal()
+    log_prob = model.flow.log_prob(targets, events_ndims=targets.shape[1]).numpy()
+    if(len(log_prob.shape) > 1):
+        log_prob = log_prob.diagonal()
     
-    for (t, lp) in list(zip(targets, probs)):
+    for i,(t, lp) in enumerate(list(zip(targets, log_prob))):
         rc_samples.append(rc_func(t))
         if sim == "Bistable Dimer in LJ Fluid":
             t = t.reshape((36, 2))
         else:
             t = t.reshape((1, 2))
         weights.append(np.exp(-simulation.getEnergy(t) + lp))
+        bar.progress((i*1.0)/n + inc)
     
     counts, bins = np.histogram(rc_samples, weights=weights, bins=200)
     probs = (counts / np.sum(counts)) + 1e-9
@@ -125,11 +116,35 @@ def plot_free_energy(model, n, sim):
     im = np.array(fig2img(fig))
     st.image(im, "Free Energy Diagram", use_column_width=True)
 
+@st.cache(suppress_st_warning=True, hash_funcs={RealNVP: hash})
+def plot_dimer_positions(model, n, sim, alpha):
+    targets = model.forward_sample(n).numpy().reshape((-1, 36, 2))
+    ap = np.mean(targets, axis=0)
+    fig = plt.figure(figsize=(12, 8), dpi=125)
+    plt.xlabel(" x positions ")
+    plt.ylabel(" y positions ")
+    plt.plot(ap[0:2, 0], ap[0:2, 1], c='red', linewidth=8/3, zorder=10)
+    plt.plot(ap[0:2, 0], ap[0:2, 1], 'o', c='red', markersize=8, zorder=9)
+    plt.plot(ap[2:, 0], ap[2:, 1], 'o', c='blue', markersize=4, zorder=8)
 
+    bar = st.progress(0)
+    inc = 1.0/n
+    for i in range(targets.shape[1]):
+        if i < 2:
+            plt.plot(targets[:, i, 0], targets[:, i, 1], 'o', c='red', alpha=min(alpha*2, 1), markersize=4, zorder=4)
+        else:
+            plt.plot(targets[:, i, 0], targets[:, i, 1], 'o', c='blue', alpha=alpha, markersize=2, zorder=0)
+        bar.progress((i * 1.0)/targets.shape[1] + (1.0/targets.shape[1]))
+
+    im = np.array(fig2img(fig))
+    st.image(im, "Dimer Positions", use_column_width=True)
+
+
+# @st.cache(suppress_st_warning=True, hash_funcs={RealNVP: hash})
+# def control_plots(plot, model, n, sim):
 
 
 def main():
-    
     num_samples = st.sidebar.slider("Number of samples to run", min_value=500, max_value=25000, value=5000)
     sim = st.sidebar.selectbox("Which data set was the model trained on?", ["Double Moon", "Double Well", "Mueller Potential", "Bistable Dimer in LJ Fluid"])
     if sim == "Double Moon":
@@ -139,12 +154,17 @@ def main():
     else:
         plot_choice = st.sidebar.selectbox("Plots", ["Free Energy", "Forward Samples"])
     model_file = st.sidebar.text_input("Path to a saved checkpoint", value="")
-    model = initialize_model(model_file)
+    model = initialize_model(model_file, sim)
     
+    # control_plots(plot_choice, model, num_samples, sim)
     if plot_choice == "Forward Samples":
         plot_samples(model, num_samples, sim)
     if plot_choice == "Free Energy":
         plot_free_energy(model, num_samples, sim)
+    if plot_choice == "Dimer Positions":
+        alpha = st.sidebar.slider("alpha", min_value = 0.01, max_value=1.0,value=0.15, step=0.001)
+        plot_dimer_positions(model, num_samples, sim, alpha)
+    
     
         
 

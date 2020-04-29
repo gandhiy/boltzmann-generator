@@ -43,8 +43,6 @@ class Logging(Network):
         self.log.update(self.get_state())
         self.decorated_model.state = {}
     
-    
-
 class LogLoss(Logging):
     def __init__(self, decorated_model):
         """
@@ -56,7 +54,6 @@ class LogLoss(Logging):
         s = self.decorated_model.get_state()
         s['training/loss'] = (self.decorated_model.loss_value, self.training_iteration)
         return s
-
 
 class LogTargetPlot(Logging):
     def __init__(self, decorated_model, simulation=None, xlim = [-1.5, 1.5], ylim = [-0.5, 2.01], c='white'):
@@ -120,7 +117,6 @@ class DimerAverageLocationPlot(Logging):
             plt.close()
             s['training/average_dimer_position'] = (fig, self.epoch)
         return s
-
 
 class FreeEnergyPlot(Logging):
     def __init__(self, decorated_model, simulation, RC_func, bins = 200, reshape=None):
