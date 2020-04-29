@@ -216,7 +216,20 @@ class System(data_logging.Subject):
             coords[i ,:] = self.particles[i].loc
         return coords
 
+    def get_coordinates_tf(self):
+        coords = tf.zeros((len(self.particles), self.dim))
+        for i in range(len(self.particles)):
+            coords[i ,:] = self.particles[i].loc
+        return coords
+
     def set_coordinates(self, coords, indices = []):
+        if  len(indices) == 0:
+            indices = range(len(self.particles))
+        
+        for i in indices:
+            self.particles[i].loc = coords[i, :]
+
+    def set_coordinates_tf(self, coords, indices =[]):
         if  len(indices) == 0:
             indices = range(len(self.particles))
         
@@ -253,6 +266,10 @@ class System(data_logging.Subject):
 
     def get_energy(self):
         H, U, K = self.integrator.calculate_energy()
+        return(H, U, K)
+
+    def get_energy_tf(self):
+        H, U, K = self.integrator.calculate_energy_tf()
         return(H, U, K)
 
             

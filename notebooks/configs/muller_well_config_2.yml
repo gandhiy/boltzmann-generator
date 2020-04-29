@@ -1,5 +1,5 @@
 # Double Well Config File
-simulation_type : "double-well"
+simulation_name : "muller-sim"
 integrator : "metropolis"
 integrator_args : {
   temp : 1,

@@ -10,7 +10,7 @@ tfb = tfp.bijectors
 
 
 class Trainer:
-    def __init__(self, model, targets, verbose=0):
+    def __init__(self, model, targets, verbose=0, batch_size = 1000):
         self.model = model
         self.verbose = verbose
         if(self.verbose==1):
@@ -20,7 +20,7 @@ class Trainer:
         _targets = tf.random.shuffle(targets)
         self.train_dataset = (
             tf.data.Dataset.from_tensor_slices(_targets)
-            .shuffle(len(targets)).batch(256)
+            .shuffle(len(targets)).batch(batch_size)
         )
 
         self.epoch = 0

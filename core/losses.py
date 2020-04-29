@@ -61,7 +61,7 @@ class KLLoss(lossInterface):
         gauss_samples = model.distribution.sample(len(samples))
         real_space = model.bijector.forward(gauss_samples)
         energies = tf.convert_to_tensor(np.array([self.scale_energy(self.u(np.expand_dims(s, axis=0))) for s in real_space],dtype=np.float32))
-        return self.c1 * tf.reduce_mean(energies - model.bijector.forward_log_det_jacobian(gauss_samples, self.n))
+        return self.c1 * tf.reduce_mean(energies + model.bijector.inverse_log_det_jacobian(real_space, self.n))
 
 
 class RCKL(KLLoss):

@@ -1,5 +1,5 @@
 # Double Well Config File
-
+simulation_name : "double-well-sim"
 integrator : "metropolis"
 integrator_args : {
   temp : 1,
@@ -8,4 +8,4 @@ integrator_args : {
 }
 x_0 : [-2, 0]
 out_freq : 100
-n_steps : 500000
+n_steps : 100000

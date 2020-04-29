@@ -1,4 +1,5 @@
 import numpy as np
+import tensorflow as tf
 
 # Particle Potentials
 class WCAPotential:
@@ -13,6 +14,13 @@ class WCAPotential:
             return(self.epsilon * 4 * ( (self.sigma**2 / np.dot(r_ij, r_ij)**6) - (self.sigma**2 / np.dot(r_ij, r_ij)**3) ) - self.E_c )
         else:
             return(0.0)
+
+    def tf_energy(self, r_ij):
+        if tf.tensordot(r_ij,r_ij) < self.r_c ** 2:
+            return(self.epsilon * 4 * ( (self.sigma**2 / tf.tensordot(r_ij, r_ij)**6) - (self.sigma**2 / tf.tensordot(r_ij, r_ij)**3) ) - self.E_c )
+        else:
+            return(0.0)
+
     def derivative(self, r_ij):
         if np.dot(r_ij,r_ij) < self.r_c ** 2:
             return( -24 * self.epsilon * r_ij / np.dot(r_ij, r_ij) * (2 * (self.sigma**2 / np.dot(r_ij, r_ij)**6) - (self.sigma**2 / np.dot(r_ij, r_ij)**3) ) )
@@ -31,6 +39,15 @@ class LJpotential:
             return(self.epsilon * 4 * ( (self.sigma**2 / np.dot(r_ij, r_ij)**6) - (self.sigma**2 / np.dot(r_ij, r_ij)**3) ))
         else:
             return(0.0)
+
+
+    def tf_energy(self, r_ij):
+        if tf.tensordot(r_ij,r_ij) < self.r_c ** 2 or self.r_c is None:
+            return(self.epsilon * 4 * ( (self.sigma**2 / tf.tensordot(r_ij, r_ij)**6) - (self.sigma**2 / tf.tensordot(r_ij, r_ij)**3) ))
+        else:
+            return(0.0)
+
+
     def derivative(self, r_ij):
         if np.dot(r_ij,r_ij) < self.r_c ** 2 or self.r_c is None:
             return( -24 * self.epsilon * r_ij / np.dot(r_ij, r_ij) * (2 * (self.sigma**2 / np.dot(r_ij, r_ij)**6) - (self.sigma**2 / np.dot(r_ij, r_ij)**3) ) )
@@ -48,6 +65,13 @@ class LJRepulsion:
             return(self.epsilon * 4 * ((self.sigma**2 / np.dot(r_ij, r_ij)**6) ))
         else:
             return(0.0)
+
+    def tf_energy(self, r_ij):
+        if tf.tensordot(r_ij,r_ij) < self.r_c ** 2 or self.r_c is None:
+            return(self.epsilon * 4 * ((self.sigma**2 / tf.tensordot(r_ij, r_ij)**6) ))
+        else:
+            return(0.0)
+
     def derivative(self, r_ij):
         if np.dot(r_ij,r_ij) < self.r_c ** 2 or self.r_c is None:
             return( -48 * self.epsilon *  self.sigma * r_ij * (1 / np.dot(r_ij, r_ij)**7))
@@ -63,6 +87,10 @@ class DoubleWellPotential1D:
         self.c = c
 
     def __call__(self, d):
+        return 1/4 * self.a * (d - self.d0) ** 4 - 1/2 * self.b * (d - self.d0) ** 2 + \
+            self.c * (d - self.d0)
+
+    def tf_energy(self, d):
         return 1/4 * self.a * (d - self.d0) ** 4 - 1/2 * self.b * (d - self.d0) ** 2 + \
             self.c * (d - self.d0)
 
@@ -82,6 +110,10 @@ class DoubleWellPotential:
         return 1/4 * self.a * r[0] ** 4 - 1/2 * self.b * r[0] ** 2 + \
             self.c * r[0] + 1/2 * self.d * r[1] ** 2
 
+    def tf_energy(self, r):
+        return 1/4 * self.a * r[0] ** 4 - 1/2 * self.b * r[0] ** 2 + \
+            self.c * r[0] + 1/2 * self.d * r[1] ** 2
+
     def derivative(self, r):
         dx = self.a * r[0] ** 3 - self.b * r[0] + self.c
         dy = self.d * r[1]
@@ -97,6 +129,9 @@ class HarmonicPotential:
     
     def __call__(self, r):
         return 1/2 * self.k * np.dot((r - self.x_o), (r - self.x_o))
+    
+    def tf_energy(self, r):
+        return 1/2 * self.k * tf.tensordot((r - self.x_o), (r - self.x_o))
 
     def derivative(self, r):
         return self.k * (r - self.x_o)
@@ -117,9 +152,14 @@ class MuellerPotential:
         for A, a, b, c, xj, yj in zip(self.A, self.a, self.b, self.c, self.xj, self.yj):
             i += 1
             E += A * np.exp(a * (r[0] - xj)**2 + b * (r[0] - xj) * (r[1] - yj) + c * (r[1] - yj)**2)
-        #     print("Index", i, ":", A * np.exp(a * (r[0] - xj)**2 + b * (r[0] - xj) * (r[1] - yj) + c * (r[1] - yj)**2))
-        # print("E =", self.alpha * E)
-        # print("r =", r)
+        return(self.alpha * E)
+
+    def tf_energy(self, r):
+        E = 0
+        i = 0
+        for A, a, b, c, xj, yj in zip(self.A, self.a, self.b, self.c, self.xj, self.yj):
+            i += 1
+            E += A * tf.math.exp(a * (r[0] - xj)**2 + b * (r[0] - xj) * (r[1] - yj) + c * (r[1] - yj)**2)
         return(self.alpha * E)
 
     def derivative(self, r):
@@ -138,6 +178,11 @@ class HarmonicBox:
         self.k_box = k_box
 
     def __call__(self, r_ij):
+        u_upper = np.sum(np.heaviside(r_ij - self.l_box/2, 0) * self.k_box * (r_ij - self.l_box/2) ** 2)
+        u_lower = np.sum(np.heaviside(-r_ij - self.l_box/2, 0) * self.k_box * (-r_ij - self.l_box/2) ** 2)
+        return u_upper + u_lower
+
+    def tf_energy(self, r_ij):
         u_upper = np.sum(np.heaviside(r_ij - self.l_box/2, 0) * self.k_box * (r_ij - self.l_box/2) ** 2)
         u_lower = np.sum(np.heaviside(-r_ij - self.l_box/2, 0) * self.k_box * (-r_ij - self.l_box/2) ** 2)
         return u_upper + u_lower

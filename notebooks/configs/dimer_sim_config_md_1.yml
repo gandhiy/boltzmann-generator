@@ -1,5 +1,4 @@
 # Dimer in Solution Config File
-
 simulation_name : "dimer-lj-sim"
 integrator : "verlet"
 integrator_args : {
