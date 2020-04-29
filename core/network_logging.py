@@ -43,10 +43,11 @@ class Logging(Network):
         self.log.update(self.get_state())
         self.decorated_model.state = {}
     
-    
-
 class LogLoss(Logging):
     def __init__(self, decorated_model):
+        """
+         Plot the scaler loss function at every single training iteration         
+        """
         Logging.__init__(self, decorated_model)
         
     def get_state(self):
@@ -54,13 +55,24 @@ class LogLoss(Logging):
         s['training/loss'] = (self.decorated_model.loss_value, self.training_iteration)
         return s
 
-
 class LogTargetPlot(Logging):
-    def __init__(self, decorated_model, simulation=None, xlim = [-1.5, 1.5], ylim = [-0.5, 2.01]):
+    def __init__(self, decorated_model, simulation=None, xlim = [-1.5, 1.5], ylim = [-0.5, 2.01], c='white'):
+        """
+         Plot the forward samples from the currently trained model. Uses the
+         simulation to plot the central potential density function if available.
+
+         PARAMETERS:
+         * simulation: simulation used to generate the samples to train the model
+         * xlim (array): min and max values for x-axis in plotting (ex. [min, max])
+         * ylim (array): min and max values for y-axis in plotting (ex. [min, max])
+         * c (string): color of the points for plotting the samples
+        """
+
         Logging.__init__(self, decorated_model)
         self.sim = simulation
         self.xlim = xlim
         self.ylim = ylim
+        self.color = c
 
     def get_state(self):
         s = self.decorated_model.get_state()
@@ -68,14 +80,13 @@ class LogTargetPlot(Logging):
             target = self.forward_sample(2500).numpy().T
             fig = plt.figure(figsize=(12, 8), dpi = 100)
             if(self.sim):
-                visuals.plot_2D_potential(self.sim.central_potential, xlim=self.xlim, ylim=self.ylim, cmap='jet')
+                visuals.plot_2D_potential(self.sim.simulation.central_potential, xlim=self.xlim, ylim=self.ylim, cmap='jet')
             plt.xlim(self.xlim)
             plt.ylim(self.ylim)
-            plt.scatter(target[0], target[1], s=1.15, c='white')
+            plt.scatter(target[0], target[1], s=1.15, c=self.color)
             plt.close()
             s['training/forward_samples'] = (fig, self.epoch)
         return s
-
 
 class LogGaussPlot(Logging):
     def __init__(self, decorated_model):
@@ -106,7 +117,6 @@ class DimerAverageLocationPlot(Logging):
             plt.close()
             s['training/average_dimer_position'] = (fig, self.epoch)
         return s
-
 
 class FreeEnergyPlot(Logging):
     def __init__(self, decorated_model, simulation, RC_func, bins = 200, reshape=None):
@@ -139,7 +149,7 @@ class FreeEnergyPlot(Logging):
             bin_centers = (bins[:-1] + bins[1:])/2.0
             fig = plt.figure(figsize = (12, 8), dpi = 100)
             FE = -np.log(probs)
-            plt.plot(bin_centers[FE > -np.log(1e-9)], FE[FE > -np.log(1e-9)])
+            plt.plot(bin_centers[FE < -np.log(1e-9)], FE[FE < -np.log(1e-9)])
             plt.close()
             ## transform the histogram values
             s['training/free_energy'] = (fig, self.epoch)

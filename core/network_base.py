@@ -140,6 +140,7 @@ class RealNVP(Network, tf.Module):
             for _ in range(self.chain_length):
                 self.chain.append(RealNVPLayer(NN, self.in_shape, self.nn_layers))
                 self.chain.append(tfp.bijectors.Permute([1, 0]))
+        
         else:
             for _ in range(self.chain_length):
                 self.chain.append(
@@ -250,7 +251,7 @@ class RealNVP(Network, tf.Module):
          * name (string): folder name
         """
         if name is None:
-            name = f"saved_models/epoch_{self.epoch}/ckpt"
+            name = f"saved_models/epoch_{self.epoch + 1}/ckpt"
         save_path = os.path.join(self.save_path, name)
         return self.ckpt.save(save_path)
 
