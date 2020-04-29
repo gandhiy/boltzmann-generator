@@ -15,21 +15,74 @@ class lossInterface:
 
 class getLoss:
     def __init__(self):
+        """
+         Get the desired loss function
+        """
         pass
 
     def ml_loss(self, c1=1.0):
+        """
+         returns the maximum likelihood loss based on the negative log
+         likelihood
+         
+         PARAMETERS:
+         c1: a weighting factor on the loss
+        """
         loss = MLLoss(c1)
         return loss.lossFunction
 
     def kl_loss(self, simulation, c1 = 1.0, ndims = 2, ehigh = 1e5, emax = 1e10):
+        """
+         returns the kl loss that measures the energy of the forward samples and
+         the log determinant jacobian of samples from the latent space
+         distribution
+         
+         PARAMETERS:
+         * simulation: a simulation object 
+         * c1: loss value weight
+         * ndims: number of dimensions for sampling
+         * ehigh: value to scale energy values against
+         * emax: maximum energy value to avoid exponential blowups
+        """
         loss = KLLoss(c1, simulation, ndims, ehigh, emax)
         return loss.lossFunction
 
     def ml_kl_loss(self, simulation, c1 = 1.0, ndims = 2, ehigh=1e5, emax = 1e10, turnover=200):
+        """
+         Combines the ml and kl loss by first using the ml loss for a given
+         number of training iterations and then adding in the kl loss
+
+         PARAMETERS:
+         * simulation: a simulation object
+         * c1: loss value weight
+         * ndims: dimensionality of the problem
+         * ehigh: value to scale energy values against
+         * emax: maximum energy value to avoid exponential blowups
+         * turnover: number of training iterations before using kl_loss
+        """
         loss = MLKL(c1, simulation, ndims, ehigh, emax, turnover)
         return loss.lossFunction
         
     def rc_kl_loss(self, simulation, rc_func, vmin, vmax, c1=1.0,  ndims = 2, ehigh=1e5, emax=1e10, turnover=200):
+        """
+         Combines the kl loss and a reaction coordinate loss that measures a
+         batch-wise kernel density on the reaction coordinates. For the first
+         number of training iterations, though, the network uses the maximum
+         likelihood loss.
+
+         PARAMETERS:
+         * simulation: a simulation object
+         * rc_func: a function that maps configuration samples to reaction
+           coordinates
+         * vmin: the minimum reaction coordinate value 
+         * vmax: the maximum reaction coordinate value 
+         * c1: loss weight factor
+         * ndims: dimensionality of the sampling distribution
+         * ehigh: value to scale energy values against
+         * emax: maximum energy value to avoid exponential blowups
+         * turnover: number of training iterations before adding kl and rc losses
+        """
+
         loss = RCKL(c1, simulation, rc_func, ndims, vmin, vmax, ehigh, emax, turnover)
         return loss.lossFunction
 
@@ -40,7 +93,6 @@ class MLLoss(lossInterface):
 
     def lossFunction(self, model, samples):
         return -self.c1 * tf.reduce_mean(model.log_prob(samples))
-
 
 class KLLoss(lossInterface):
     def __init__(self, c1, simulation, ndims, ehigh = 1e5, emax = 1e10):
@@ -61,8 +113,7 @@ class KLLoss(lossInterface):
         gauss_samples = model.distribution.sample(len(samples))
         real_space = model.bijector.forward(gauss_samples)
         energies = tf.convert_to_tensor(np.array([self.scale_energy(self.u(np.expand_dims(s, axis=0))) for s in real_space],dtype=np.float32))
-        return self.c1 * tf.reduce_mean(energies + model.bijector.inverse_log_det_jacobian(real_space, self.n))
-
+        return self.c1 * tf.reduce_mean(energies - model.bijector.forward_log_det_jacobian(gauss_samples, self.n))
 
 class RCKL(KLLoss):
     def __init__(self, c1, simulation, RC_func, ndims, vmin, vmax, ehigh=1e5, emax=1e10, turnover = 200):

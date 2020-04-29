@@ -4,6 +4,9 @@ import tensorflow as tf
 
 class getOpt:
     def __init__(self):
+        """
+         Get the desired optimizer strategy
+        """
         pass
     
     def adam(self, lr=0.01, b1=0.99, b2=0.9, **kwargs):
