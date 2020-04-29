@@ -93,6 +93,7 @@ Here, streamlit is using a trained model checkpoint on the double moon simulatio
 
 #### References
 Link to original [Boltzmann Generator Paper](https://science.sciencemag.org/content/365/6457/eaaw1147)
+
 Please see [papers.md](https://github.com/gandhiy/boltzmann-generator/blob/master/papers.md) for the relevant ML reference we used in the project.
 
 
