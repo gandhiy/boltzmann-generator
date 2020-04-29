@@ -12,6 +12,29 @@ class Potential(ABC):
 
 # Particle Potentials
 class WCAPotential:
+    """
+    Object representing  WCA potential
+
+    Attributes
+    ----------
+    r_c : float
+        cutoff distance
+    sigma : float
+        sigma parameter
+    epsilon : float
+        epsilon paramter
+    E_c : foat
+        Energy at the cutoff distance
+    
+    Methods
+    -------
+    __call__(r_ij)
+        calling the potential energy class returns the energy
+        of the provided vector
+    derivative(r_ij)
+        returns the derivative of the potential at the provided
+        vector
+    """
     def __init__(self, sigma, epsilon):
         self.r_c = np.power(2, 1/6) * sigma 
         self.sigma = sigma
@@ -31,11 +54,31 @@ class WCAPotential:
             return(np.zeros(r_ij.shape))
 
 class LJpotential:
+    """
+    Object representing  LJ potential
+
+    Attributes
+    ----------
+    r_c : float
+        cutoff distance
+    sigma : float
+        sigma parameter
+    epsilon : float
+        epsilon paramter
+    
+    Methods
+    -------
+    __call__(r_ij)
+        calling the potential energy class returns the energy
+        of the provided vector
+    derivative(r_ij)
+        returns the derivative of the potential at the provided
+        vector
+    """
     def __init__(self, sigma, epsilon, r_c = None):
         self.r_c = r_c
         self.sigma = sigma
         self.epsilon = epsilon
-        self.E_c = self.epsilon * 4 * ( (self.r_c / self.sigma) ** -12 - ( self.r_c / self.sigma) ** -6 )
 
     def __call__(self, r_ij):
         if np.dot(r_ij,r_ij) < self.r_c ** 2 or self.r_c is None:
@@ -50,6 +93,27 @@ class LJpotential:
             return(np.zeros(r_ij.shape))
 
 class LJRepulsion:
+    """
+    Object representing the repulive contribution of the LJ potential
+
+    Attributes
+    ----------
+    r_c : float
+        cutoff distance
+    sigma : float
+        sigma parameter
+    epsilon : float
+        epsilon paramter
+    
+    Methods
+    -------
+    __call__(r_ij)
+        calling the potential energy class returns the energy
+        of the provided vector
+    derivative(r_ij)
+        returns the derivative of the potential at the provided
+        vector
+    """
     def __init__(self, sigma, epsilon, r_c = None):
         self.r_c = np.power(2, 1/6) * sigma 
         self.sigma = sigma
@@ -69,6 +133,31 @@ class LJRepulsion:
 
 # 1D Potentials (for Internal Coordinates)
 class DoubleWellPotential1D:
+    """
+    Object representing a 1D doubler well potential
+
+    V(x) = 1/4 a (x - d0) ^ 4 - 1/2 b (x - d0) ^ 2 + c (x - d0)
+
+    Attributes
+    ----------
+    d0 : float
+        offset of the potential from the origin
+    a : float
+        a parameter
+    b : float
+        b parameter
+    c : float
+        c parameter
+    
+    Methods
+    -------
+    __call__(r_ij)
+        calling the potential energy class returns the energy
+        of the provided vector
+    derivative(r_ij)
+        returns the derivative of the potential at the provided
+        vector
+    """
     def __init__(self, d0, a, b, c):
         self.d0 = d0
         self.a = a
@@ -85,6 +174,31 @@ class DoubleWellPotential1D:
 
 # Central Potentials
 class DoubleWellPotential:
+    """
+    Object representing a 2D double well potential
+
+    V(x) = 1/4 a x ^ 4 - 1/2 b x ^ 2 + c x  + d y ^ 2
+
+    Attributes
+    ----------
+    a : float
+        a parameter
+    b : float
+        b parameter
+    c : float
+        c parameter
+    d : float
+        d parameter
+    
+    Methods
+    -------
+    __call__(r_ij)
+        calling the potential energy class returns the energy
+        of the provided vector
+    derivative(r_ij)
+        returns the derivative of the potential at the provided
+        vector
+    """
     def __init__(self, a, b, c, d):
         self.a = a
         self.b = b
@@ -101,6 +215,28 @@ class DoubleWellPotential:
         return np.array([dx, dy])
 
 class HarmonicPotential:
+    """
+    Object representing a harmonic well potential
+
+    V(x) = 1/2 k * (x - x_0)^2
+
+    Attributes
+    ----------
+    k : float
+        spring constant
+    x_o : np.ndarray
+        resting position
+
+    
+    Methods
+    -------
+    __call__(r_ij)
+        calling the potential energy class returns the energy
+        of the provided vector
+    derivative(r_ij)
+        returns the derivative of the potential at the provided
+        vector
+    """
     def __init__(self, k, x_o = None):
         self.k = k
         if x_o is None:
@@ -115,6 +251,37 @@ class HarmonicPotential:
         return self.k * (r - self.x_o)
 
 class MuellerPotential:
+    """
+    Object representing a Muller-Brown potential surface.
+    The surface can be thought of as the sum of several
+    2D gaussians
+
+    Attributes
+    ----------
+    A : list
+        list of A parameters
+    a : list
+        list of a parameters
+    b : list
+        list of b parameters
+    c : list
+        list of c parameters
+    d : list
+        list of d parameters
+    xj : list
+        list of x position of gaussian centers
+    yj : list
+        list of y position of gaussian centers
+    
+    Methods
+    -------
+    __call__(r_ij)
+        calling the potential energy class returns the energy
+        of the provided vector
+    derivative(r_ij)
+        returns the derivative of the potential at the provided
+        vector
+    """
     def __init__(self, alpha, A, a, b, c, xj, yj):
         self.alpha = alpha
         self.A = A
@@ -143,6 +310,26 @@ class MuellerPotential:
         return(self.alpha * np.array([dx, dy]))
 
 class HarmonicBox:
+    """
+    Object representing a Muller-Brown potential surface.
+    The surface can be thought of as the sum of several
+    2D gaussians
+
+    Attributes
+    ----------
+    l_box : np.ndarray
+        box size
+    k_box : float
+        harmonic potential outside of box
+    Methods
+    -------
+    __call__(r_ij)
+        calling the potential energy class returns the energy
+        of the provided vector
+    derivative(r_ij)
+        returns the derivative of the potential at the provided
+        vector
+    """
     def __init__(self, l_box, k_box):
         self.l_box = l_box
         self.k_box = k_box

@@ -20,6 +20,21 @@ class Integrator(ABC):
         self.thermostat = self.thermostat_fact.get_thermostat(thermostat_name, T, **kwargs)
 
 class IntegratorFactory():
+    """
+    Factory for instantiating integrators
+
+    Attributes
+    ----------
+    system : System
+        system to add integrator to
+    integrators : dict
+        dictionary of implemented integrators
+    
+    Methods
+    -------
+    get_integrator(integrator_name, **kwargs)
+        build an integrator with specific kwargs
+    """
     def __init__(self, system):
         self.system = system
         self.integrators = { 
@@ -36,6 +51,34 @@ class IntegratorFactory():
             raise NotImplementedError(integrator_name + " is not a valid integrator")
 
 class VerletIntegrator(Integrator):
+    """
+    The Verlet Integrator object is responsible for integrating the equations of motion
+    and propagating the System object through through time
+
+    Attributes
+    ----------
+    system : System
+        System which will be integrated
+    dt : int
+        step size of integration
+    thermostat : Thermostat
+        thermostat object to maintain temperature
+    thermostat_fact : ThermostatFactory
+        factory for building thermostats
+
+    Methods
+    -------
+    integrate():
+        integrate the system by one step
+    calculate_forces()
+        calculate the forces of the system
+    calculate_energy()
+        calculate the energy of the system
+    calculate_pressure()
+        calculate the pressure of the system
+    calculate_temperature()
+        calculate the temperature of the system
+    """
     def __init__(self, system, dt):
         super().__init__(system, dt)
 
@@ -145,6 +188,43 @@ class VerletIntegrator(Integrator):
 
 
 class VerletIntegratorNeighbors(VerletIntegrator):
+    """
+    The VerletIntegratorNeighbor object is responsible for integrating the equations of motion
+    and propagating the System object through through time. This object implements 
+    the neighbor list algorithm for quickly computing pairwise interactions
+
+    Attributes
+    ----------
+    system : System
+        System which will be integrated
+    dt : int
+        step size of integration
+    thermostat : Thermostat
+        thermostat object to maintain temperature
+    thermostat_fact : ThermostatFactory
+        factory for building thermostats
+    r_nl : float
+        distance for neighbor cutoffs
+
+    Methods
+    -------
+    integrate():
+        integrate the system by one step
+    calculate_forces()
+        calculate the forces of the system
+    calculate_energy()
+        calculate the energy of the system
+    calculate_pressure()
+        calculate the pressure of the system
+    calculate_temperature()
+        calculate the temperature of the system
+    init_particle_history()
+        start tracking the previous location of particles
+    update_neighbors()
+        recalculate the neighbors of each particle
+    check_delta_r()
+        check to see if neighbors need to be updated
+    """
     def __init__(self, system, dt, r_nl):
         super().__init__(system, dt)
         self.r_nl = r_nl
@@ -271,6 +351,47 @@ class VerletIntegratorNeighbors(VerletIntegrator):
         return(P)
 
 class VerletIntegratorCellList(VerletIntegrator):
+    """
+    The VerletIntegratorCellList object is responsible for integrating the equations of motion
+    and propagating the System object through through time. This object uses the cell list
+    algorithm for quickly calculating pariwise interactions
+
+    Attributes
+    ----------
+    system : System
+        System which will be integrated
+    dt : int
+        step size of integration
+    thermostat : Thermostat
+        thermostat object to maintain temperature
+    thermostat_fact : ThermostatFactory
+        factory for building thermostats
+    r_cell : float
+        distance defining cell size
+    neighbor_indexes : list
+        list of neighbors needed to check for each cell
+    cell_indexes : list
+        list of cells numbers
+
+    Methods
+    -------
+    integrate():
+        integrate the system by one step
+    calculate_forces()
+        calculate the forces of the system
+    calculate_energy()
+        calculate the energy of the system
+    calculate_pressure()
+        calculate the pressure of the system
+    calculate_temperature()
+        calculate the temperature of the system
+    init_cell_lists()
+        start tracking cell lists in particles for algorithm
+    get_cell_neighbors(index)
+        return the particles in neighboring cells
+    update_cells()
+        recalcuate the placement of particles in cells
+    """
     def __init__(self, system, dt, r_cell):
         super().__init__(system, dt)
         self.r_cell = self.system.box / np.floor(self.system.box / r_cell)
@@ -385,6 +506,40 @@ class VerletIntegratorCellList(VerletIntegrator):
 
 
 class MetropolisIntegrator(Integrator):
+    """
+    The Metropolis Integrator object is responsible for integrating the System
+    using a metropolis hastings method. 
+
+    Attributes
+    ----------
+    system : System
+        System which will be integrated
+    dt : int
+        step size of integration
+    thermostat : Thermostat
+        thermostat object to maintain temperature
+    thermostat_fact : ThermostatFactory
+        factory for building thermostats
+    temp : float
+        system temperature
+    sigma : float
+        distance to perturb system by
+    adjust_sigma : bool
+        flag for adjusting the size of sigma over the simulation
+    accepts : int
+        number of accepted trials
+    steps : int
+        number of total steps
+    energy : instantaneous energy of the system
+
+    Methods
+    -------
+    integrate():
+        integrate the system by one step
+    calculate_energy()
+        calculate the energy of the system
+
+    """
     def __init__(self, system, temp, sigma = 1, adjust_sigma = True, adjust_freq = 10):
         super().__init__(system)
         self.temp = temp

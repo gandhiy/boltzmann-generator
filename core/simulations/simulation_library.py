@@ -6,6 +6,28 @@ import potentials
 import data_logging
 import boundary_conditions
 class Particle:
+    """
+    Particle object stores data about a particle
+
+    Attributes
+    ----------
+    potential : Potential
+        interaction potential the particle uses when interacting with other particles
+    loc : np.ndarray
+        location in ND space
+    mass : float
+        particle mass
+    vel : np.ndarray
+        ND velocity of particle
+    force : np.ndaarray
+        stored sum of all forces on particle
+    neighbors : list
+        neighbor list for neighborlist verlet integration
+    cell : int
+        cell number particle is in for cell list verlet integrator
+    index : int
+        index of cell in system.particle list
+    """
     def __init__(self, potential, loc, vel = None, mass = 1):
         self.potential = potential
         self.loc = loc
@@ -19,6 +41,31 @@ class Particle:
         self.index = None
 
 class Bond:
+    """
+    The Bond object stores data about the bond between two particles
+
+    Attributes
+    ----------
+    particle_1 : Particle
+        first particle in bond
+    particle_2 : Particle
+        second particle in bond
+    potential : Potential
+        interaction potential along bond
+    bc : BoundaryCondition
+        Boundary condition on how to apply bond accross box boundaries
+
+    Methods
+    -------
+    get_distance()
+        calculate the scalar distance between both particles
+    get_rij()
+        calcualte the vector distance between both particles
+    get_energy()
+        calculate the energy of the bond between both particles
+    get_force()
+        calculate the force exerted between both particles
+    """
     def __init__(self, potential, particle_1, particle_2, particle_interactions = False, bc = None):
         self.particle_1 = particle_1
         self.particle_2 = particle_2
@@ -49,6 +96,41 @@ class Bond:
 
 
 class SystemFactory:
+    """
+    Factory object for building system objects
+
+    Attributes
+    ----------
+    placement : dict
+        dictionary containing placement methods
+    potentials : dict
+        dictonary containing different particle potentials
+    central_potentials : dict
+        dictonary containing different central potentials
+    boundary_conditions : dict
+        dictionary containing different boundary conditions
+    
+    Methods
+    -------
+    build_system(self, dim = 2, T = 1, rho = 0.6, N = 20, mass = 1,
+                 placement_method = "lattice",
+                 boundary_conditions = "periodic",
+                 potential = "WCA", **args)
+        method for building a system object with many
+        different options regarind particle placement, 
+        system temperature, system density, etc.
+    get_dof(system, boundary_conditions)
+        set the number of dofs for a system
+    add_central_potential(system, central_potential, **kwargs)
+        add a central potential to the system
+    lattice_placement(n, box)
+        place particles in box using a lattice placement method
+    random_placement(n, box, dmin=None, center=None)
+        place particles randomly in box. if dmin is specified particles
+        will be placed such that no particles are within dmin of each
+        other. If center is specified, it changes the center of where
+        particles are added.
+    """
     def __init__(self):
         self.placement = {
                           "lattice" : self.lattice_placement,
@@ -133,6 +215,74 @@ class SystemFactory:
 
 
 class System(data_logging.Subject):
+    """
+    System object stores the state of a system while the simulation is running.
+    The system object is only responsible for the instantaneous configuration 
+    of the system as it is propagated through time.
+
+    Attributes
+    ----------
+    observers : list
+        list of observers observing the system
+    particles : list
+        list of Particle objects in the system
+    bonds : list
+        list of Bond objects in the system
+    box : np.ndarray
+        box dimension of the system
+    int_fact : IntegratorFactory
+        integrator factory used to get the integrators used in the system
+    integrator : Integrator
+        integrator used to step the system through time
+    central_potential : Potential
+        central potential applied to the system every step
+    bc : BoundaryCondition
+        boundary condition applied to the system edges
+    dim : int
+        dimensions of system
+    dof : int
+        degrees of freedom of the system
+
+    Methods
+    -------
+    registerObserver(Observer)
+        register an observers to be notified of state changes
+    removeObserver(Observer)
+        remove observer from observer list
+    notifyObserver(steps)
+        notify Observers giving the number of steps the system is on
+    get_integrator(integrator_name, **kwargs)
+        use the integrator facotry to build an system integrator
+    get_thermostat(thermostat_name, T, **kwargs)
+        use the integrator's thermostat factory tob build a thermostat for
+        the integrator
+    run(steps)
+        run the system for a certain number of steps
+    add_particle(particle)
+        add particle to the system
+    add_bond(bond)
+        add bond to the system
+    apply_bc(coords)
+        apply the boundary conditions of the system to a set of coordinates
+    get_velocities()
+        assemble particle velocities of the particles into a numpy array
+    set_velocities(vels, indices)
+        set the velocities of particles using a numpy array
+    get_coordinates()
+        assemble particle coordinates into a numpy array
+    set_coordinates(coords, indices)
+        set particle coordinates using a numpy array
+    get_energy()
+        calculate the system energy using the integrator
+    get_masses()
+        get the system particle masses
+    set_masses(masses, indices)
+        set the system particle masses with a numpy array
+    get_forces()
+        get the per particle system forces in a numpy array
+    set_forces(forces, indices)
+        set the forces per particle using a numpy array
+    """
     def __init__(self, box = np.array([1, 1]), dim = 2):
         super().__init__()
         self.particles = []
@@ -260,10 +410,6 @@ class System(data_logging.Subject):
 
     def get_energy(self):
         H, U, K = self.integrator.calculate_energy()
-        return(H, U, K)
-
-    def get_energy_tf(self):
-        H, U, K = self.integrator.calculate_energy_tf()
         return(H, U, K)
 
             
