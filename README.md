@@ -1,12 +1,18 @@
 # Boltzmann Generator
 The boltzmann generator is used to sample configurations from different molecular dynamics simulations. The model learns valid configurations under the dynamics of the given simulation.
 
-
-
+Content
+* [Team Members](##-team)
+* [Requirements](##-requirements-and-install)
+* [Coding-Example](##-code-base-example)
+* [Tensorboard](##-viewing-the-tensorboard)
+* [Streamlit](##-running-the-streamlit-application)
 
 
 ## Team: 
+
 **Yash Gandhi**
+
 **Theodore Fobe**
 
 ## Requirements and Install
@@ -56,7 +62,7 @@ trainer.train(20)
 ```
 
 
-## Viewing the tensorboard
+## Viewing the Tensorboard
 To monitor training, the logging decorators push data to a tensorboard and displays values like the ones below:
 
 ![tb1](notebooks/images/tb_im1.png)
@@ -71,7 +77,7 @@ To view a tensorboard, inside of checkpoints run
 
 By specifying which folder or specific run, the results can be narrowed and only information about runs (or run) within that folder will be seen. 
 
-## Streamlit
+## Running the Streamlit Application
 Finally, we provide some simple interactive plots to view trained models through streamlit. Inside of core, run 
 ```bash
 >> streamlit run app.py
