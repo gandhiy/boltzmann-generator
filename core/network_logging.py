@@ -101,11 +101,11 @@ class DimerAverageLocationPlot(Logging):
             fig = plt.figure(figsize=(12, 8), dpi=100)
             plt.xlabel("Average x position")
             plt.ylabel("Average y position")
+            plt.plot(average_positions[0:2, 0], average_positions[0:2, 1], c='red', linewidth=8/3)
             plt.plot(average_positions[:, 0], average_positions[:, 1], 'o', c='red', markersize=8)
             plt.close()
             s['training/average_dimer_position'] = (fig, self.epoch)
         return s
-
 
 
 class FreeEnergyPlot(Logging):
@@ -139,7 +139,7 @@ class FreeEnergyPlot(Logging):
             bin_centers = (bins[:-1] + bins[1:])/2.0
             fig = plt.figure(figsize = (12, 8), dpi = 100)
             FE = -np.log(probs)
-            plt.plot(bin_centers[FE < -np.log(1e-9)], FE[FE < -np.log(1e-9)])
+            plt.plot(bin_centers[FE > -np.log(1e-9)], FE[FE > -np.log(1e-9)])
             plt.close()
             ## transform the histogram values
             s['training/free_energy'] = (fig, self.epoch)
