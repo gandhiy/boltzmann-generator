@@ -1,4 +1,4 @@
-# [Boltzmann Generator](https://science.sciencemag.org/content/365/6457/eaaw1147)
+# [Boltzmann Generators](https://science.sciencemag.org/content/365/6457/eaaw1147)
 Boltzmann generators are used to sample configurations from different molecular dynamics simulations in a one-shot method. This offers a faster alternative to traditional enhanced sampling methods. The model learns valid configurations under the dynamics of the given simulation using a realNVP network. Real space configrations can be inverse-transformed to a latent gaussian distribution and can easily be sampled through the by the forward transformation of a gaussian distribution. Using these generated samples we can perform rigorous free energy calculations by generating new configurations for the system of interest.
 
 Content
@@ -90,3 +90,10 @@ This will launch a local webapp that allows the user to interact with outputs of
 
 
 Here, streamlit is using a trained model checkpoint on the double moon simulation to output forward samples on top of the known central potential function.
+
+#### References
+Link to original [Boltzmann Generator Paper](https://science.sciencemag.org/content/365/6457/eaaw1147)
+Please see [papers.md](https://github.com/gandhiy/boltzmann-generator/blob/master/papers.md) for the relevant ML reference we used in the project.
+
+
+
